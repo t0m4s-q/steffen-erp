@@ -1,5 +1,5 @@
 import { BaseSupabaseRepository } from './base.repository';
-import type { AccountType, PatrimonialMovementType } from '@/database/types';
+import type { AccountType, PatrimonialMovementType } from '@/database/domain-types';
 import { DomainError } from '@/domain/errors';
 import { Decimal, toNumericString } from '@/domain/decimal';
 

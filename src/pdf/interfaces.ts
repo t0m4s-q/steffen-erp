@@ -3,7 +3,7 @@
  * Fuente: PDFS.md y DATA_MODEL.md (Sección 58)
  */
 
-import type { DocumentType, RendererType, GenerationStatus } from '@/database/types';
+import type { DocumentType, RendererType, GenerationStatus } from '@/database/domain-types';
 
 export interface DocumentPayloadSnapshot {
   documentType: DocumentType;

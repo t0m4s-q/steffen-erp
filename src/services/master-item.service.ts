@@ -1,10 +1,11 @@
 import { MasterItemRepository, MasterItemRecord, UpdateMasterItemInput } from '@/repositories/master-item.repository';
 import { SupplierRepository } from '@/repositories/supplier.repository';
+import { SupplierItemRepository, ISupplierItemRepository } from '@/repositories/supplier-item.repository';
 import { CodeSequenceService } from './code-sequence.service';
 import { StockDomainService } from './stock.service';
 import { CostEngineService } from './cost-engine.service';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
 
 export interface CreateRawMaterialDto {
   name: string;
@@ -39,7 +40,8 @@ export class MasterItemDomainService {
     private readonly supplierRepo: SupplierRepository,
     private readonly codeSequenceService: CodeSequenceService,
     private readonly stockDomainService: StockDomainService,
-    private readonly costEngineService: CostEngineService
+    private readonly costEngineService: CostEngineService,
+    private readonly supplierItemRepo: ISupplierItemRepository = new SupplierItemRepository()
   ) {}
 
   async createRawMaterial(dto: CreateRawMaterialDto): Promise<MasterItemRecord> {
@@ -91,12 +93,13 @@ export class MasterItemDomainService {
       const initStock = new Decimal(dto.initialStock);
       if (initStock.greaterThan(0)) {
         this.validateKgPrecision(initStock, 'stock inicial');
+        const operationId = await this.masterItemRepo.createAdjustmentOperation(dto.createdDate);
         await this.stockDomainService.applyStockMovement({
+          operationId,
           stockItemId: item.id,
-          delta: initStock,
-          direction: 'IN',
           movementType: 'AJUSTE',
-          reason: 'Stock inicial de alta de Materia Prima',
+          quantityDelta: initStock,
+          description: 'Stock inicial de alta de Materia Prima',
         });
       }
     }
@@ -151,12 +154,13 @@ export class MasterItemDomainService {
         if (!initStock.isInteger()) {
           throw new DomainError('El stock inicial de un Componente debe ser un número entero de unidades.');
         }
+        const operationId = await this.masterItemRepo.createAdjustmentOperation(dto.createdDate);
         await this.stockDomainService.applyStockMovement({
+          operationId,
           stockItemId: item.id,
-          delta: initStock,
-          direction: 'IN',
           movementType: 'AJUSTE',
-          reason: 'Stock inicial de alta de Componente',
+          quantityDelta: initStock,
+          description: 'Stock inicial de alta de Componente',
         });
       }
     }
@@ -224,13 +228,20 @@ export class MasterItemDomainService {
       let refCurrency: 'ARS' | 'USD' | null = null;
 
       try {
-        const costData = await this.costEngineService.getCurrentStockItemCost(item.id);
-        cost = costData.unitCostGrossArs;
-        refSupplierName = costData.sourceSupplierName;
-        refPriceNet = costData.quotedUnitPriceNet;
-        refCurrency = costData.currencyCode as 'ARS' | 'USD';
+        cost = await this.costEngineService.getCurrentStockItemCost(item.id);
       } catch {
         // sin costo definido aún
+      }
+
+      try {
+        const latestSupplierItem = await this.supplierItemRepo.getLatestSupplierItem(item.id);
+        if (latestSupplierItem) {
+          refSupplierName = latestSupplierItem.supplierName;
+          refPriceNet = latestSupplierItem.quotedUnitPriceNet;
+          refCurrency = latestSupplierItem.supplierCurrency as 'ARS' | 'USD';
+        }
+      } catch {
+        // sin proveedor asociado aún
       }
 
       result.push({
@@ -247,7 +258,7 @@ export class MasterItemDomainService {
   }
 
   private validateKgPrecision(val: Decimal, fieldName: string): void {
-    const str = val.toNumericString();
+    const str = toNumericString(val);
     const parts = str.split('.');
     if (parts.length > 1 && parts[1].length > 3) {
       throw new DomainError(`El valor de ${fieldName} en kg no puede tener más de 3 decimales.`);

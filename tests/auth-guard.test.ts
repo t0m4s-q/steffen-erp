@@ -43,21 +43,24 @@ test('Autenticación y Autorización — Capa mínima del MVP y guards de servid
         email: existingOp.email!,
       });
       const tokenHash = linkRes.data?.properties?.hashed_token;
+      if (!tokenHash) throw new Error('No se pudo generar hashed_token para el operador autorizado');
       const otpRes = await anonClient.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' });
       authorizedUserToken = otpRes.data.session!.access_token;
     } else {
       // Si no existiera, crear temporalmente
-      const { data: uData1 } = await adminClient.auth.admin.createUser({
+      const { data: uData1, error: uErr1 } = await adminClient.auth.admin.createUser({
         email: `steffen_authorized_${Date.now()}@steffen.com`,
         password: testPassword,
         email_confirm: true,
       });
+      if (uErr1 || !uData1?.user) throw uErr1 || new Error('No se pudo crear usuario de prueba');
       authorizedUserId = uData1.user.id;
-      const { data: sData1 } = await anonClient.auth.signInWithPassword({
+      const { data: sData1, error: sErr1 } = await anonClient.auth.signInWithPassword({
         email: uData1.user.email!,
         password: testPassword,
       });
-      authorizedUserToken = sData1.session!.access_token;
+      if (sErr1 || !sData1?.session) throw sErr1 || new Error('No se pudo iniciar sesión para usuario de prueba');
+      authorizedUserToken = sData1.session.access_token;
     }
 
     // 2. Crear un segundo usuario autenticado (pero no autorizado en STEFFEN_AUTHORIZED_USER_ID)

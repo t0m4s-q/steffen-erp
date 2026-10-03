@@ -1,5 +1,5 @@
 import { IStockRepository, StockRepository } from '@/repositories/stock.repository';
-import type { StockMovementType } from '@/database/types';
+import type { StockMovementType } from '@/database/domain-types';
 import {
   DomainError,
   InvalidStockUnitPrecisionError,

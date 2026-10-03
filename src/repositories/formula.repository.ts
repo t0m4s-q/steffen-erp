@@ -1,6 +1,6 @@
 import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
 
 export interface FormulaVersionItemRecord {
   id: string;
@@ -164,7 +164,7 @@ export class FormulaRepository extends BaseSupabaseRepository implements IFormul
     const itemsPayload = items.map((item, index) => ({
       formula_version_id: versionId,
       raw_material_id: item.rawMaterialId,
-      quantity_kg: Number(item.quantityKg.toNumericString()),
+      quantity_kg: Number(toNumericString(item.quantityKg)),
       sort_order: item.sortOrder ?? index + 1,
     }));
 
@@ -235,7 +235,7 @@ export class FormulaRepository extends BaseSupabaseRepository implements IFormul
     const itemsPayload = items.map((item, index) => ({
       formula_version_id: newVersionId,
       raw_material_id: item.rawMaterialId,
-      quantity_kg: Number(item.quantityKg.toNumericString()),
+      quantity_kg: Number(toNumericString(item.quantityKg)),
       sort_order: item.sortOrder ?? index + 1,
     }));
 

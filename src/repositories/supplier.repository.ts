@@ -1,6 +1,7 @@
 import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
+import type { Database } from '@/database/types';
 
 export interface SupplierRecord {
   id: string;
@@ -65,24 +66,28 @@ export class SupplierRepository extends BaseSupabaseRepository {
     }
 
     // Crear cuenta contable SUPPLIER_PAYABLE
-    const accountCode = `CTA_${input.code}`;
     const { error: accErr } = await this.client.from('financial_accounts').insert({
-      code: accountCode,
       name: `Deuda Proveedor - ${input.name}`,
       account_type: 'SUPPLIER_PAYABLE',
+      supplier_id: data.id,
+      customer_id: null,
+      current_balance: 0,
       active: true,
-      initial_balance_ars: 0,
     });
 
     if (accErr) {
-      // Ignorar si ya existe (por idempotencia) o loguear
+      if (accErr.code === '23505') {
+        // Idempotencia: ya existe cuenta para este proveedor
+      } else {
+        throw new DomainError(`Error creando cuenta financiera para proveedor ${data.id}: ${accErr.message}`);
+      }
     }
 
     return this.mapToRecord(data);
   }
 
   async update(id: string, input: UpdateSupplierInput): Promise<SupplierRecord> {
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Database['public']['Tables']['suppliers']['Update'] = {
       updated_at: new Date().toISOString(),
     };
 
@@ -193,7 +198,7 @@ export class SupplierRepository extends BaseSupabaseRepository {
         {
           supplier_id: supplierId,
           stock_item_id: stockItemId,
-          quoted_unit_price_net: Number(quotedUnitPriceNet.toNumericString()),
+          quoted_unit_price_net: Number(toNumericString(quotedUnitPriceNet)),
           price_updated_at: now,
           active: true,
           updated_at: now,

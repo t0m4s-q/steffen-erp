@@ -1,5 +1,5 @@
 import { IPatrimonyRepository, PatrimonyRepository } from '@/repositories/patrimony.repository';
-import type { PatrimonialMovementType } from '@/database/types';
+import type { PatrimonialMovementType } from '@/database/domain-types';
 import { DomainError } from '@/domain/errors';
 import { Decimal } from '@/domain/decimal';
 

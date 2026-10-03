@@ -1,5 +1,5 @@
 import { BaseSupabaseRepository } from './base.repository';
-import type { StockItemType, UnitType, StockMovementType } from '@/database/types';
+import type { StockItemType, UnitType, StockMovementType } from '@/database/domain-types';
 import { DomainError } from '@/domain/errors';
 import { Decimal, toNumericString } from '@/domain/decimal';
 

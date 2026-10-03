@@ -1,6 +1,7 @@
 import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
+import type { Database } from '@/database/types';
 
 export interface MasterItemRecord {
   id: string;
@@ -42,7 +43,7 @@ export class MasterItemRepository extends BaseSupabaseRepository {
         item_type: input.itemType,
         name: input.name,
         unit_type: input.unitType,
-        stock_minimum: Number(input.stockMinimum.toNumericString()),
+        stock_minimum: Number(toNumericString(input.stockMinimum)),
         created_date: input.createdDate || new Date().toISOString().split('T')[0],
         active: true,
       })
@@ -83,7 +84,7 @@ export class MasterItemRepository extends BaseSupabaseRepository {
     await this.client.from('stock_balances').upsert(
       {
         stock_item_id: itemId,
-        balance_raw: 0,
+        quantity: 0,
       },
       { onConflict: 'stock_item_id' }
     );
@@ -92,13 +93,13 @@ export class MasterItemRepository extends BaseSupabaseRepository {
   }
 
   async update(id: string, input: UpdateMasterItemInput): Promise<MasterItemRecord> {
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Database['public']['Tables']['stock_items']['Update'] = {
       updated_at: new Date().toISOString(),
     };
 
     if (input.name !== undefined) updatePayload.name = input.name;
     if (input.stockMinimum !== undefined) {
-      updatePayload.stock_minimum = Number(input.stockMinimum.toNumericString());
+      updatePayload.stock_minimum = Number(toNumericString(input.stockMinimum));
     }
     if (input.active !== undefined) updatePayload.active = input.active;
 
@@ -176,6 +177,23 @@ export class MasterItemRepository extends BaseSupabaseRepository {
     }
 
     return (data || []).map((row: any) => this.mapToRecord(row, row.raw_materials?.inci));
+  }
+
+  async createAdjustmentOperation(businessDate?: string): Promise<string> {
+    const { data, error } = await this.client
+      .from('business_operations')
+      .insert({
+        operation_type: 'STOCK_ADJUSTMENT',
+        business_date: businessDate || new Date().toISOString().split('T')[0],
+      })
+      .select('id')
+      .single();
+
+    if (error || !data) {
+      throw new DomainError(`Error creando operación de ajuste de stock: ${error?.message || 'Sin datos'}`);
+    }
+
+    return data.id;
   }
 
   private mapToRecord(row: any, inci?: string | null): MasterItemRecord {

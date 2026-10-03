@@ -15,7 +15,7 @@ import type {
   PatrimonialMovementType,
   PaymentType,
   ExpenseType,
-} from '@/database/types';
+} from '@/database/domain-types';
 
 export interface CustomerDomain {
   id: string;

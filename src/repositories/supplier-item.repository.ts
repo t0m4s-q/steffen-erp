@@ -1,5 +1,5 @@
 import { BaseSupabaseRepository } from './base.repository';
-import type { CurrencyCode } from '@/database/types';
+import type { CurrencyCode } from '@/database/domain-types';
 import { DomainError } from '@/domain/errors';
 import { Decimal } from '@/domain/decimal';
 

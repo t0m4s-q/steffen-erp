@@ -1,6 +1,7 @@
 import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
+import type { Database } from '@/database/types';
 
 export interface CustomerRecord {
   id: string;
@@ -75,9 +76,9 @@ export class CustomerRepository extends BaseSupabaseRepository {
         transport_name: input.transportName || null,
         transport_address: input.transportAddress || null,
         category: input.category || null,
-        discount_1_pct: Number(d1.toNumericString()),
-        discount_2_pct: Number(d2.toNumericString()),
-        discount_3_pct: Number(d3.toNumericString()),
+        discount_1_pct: Number(toNumericString(d1)),
+        discount_2_pct: Number(toNumericString(d2)),
+        discount_3_pct: Number(toNumericString(d3)),
         created_date: input.createdDate || new Date().toISOString().split('T')[0],
         active: true,
       })
@@ -89,24 +90,28 @@ export class CustomerRepository extends BaseSupabaseRepository {
     }
 
     // Crear cuenta contable CUSTOMER_RECEIVABLE
-    const accountCode = `CTA_${input.code}`;
     const { error: accErr } = await this.client.from('financial_accounts').insert({
-      code: accountCode,
       name: `Cuenta Corriente - ${input.name}`,
       account_type: 'CUSTOMER_RECEIVABLE',
+      customer_id: data.id,
+      supplier_id: null,
+      current_balance: 0,
       active: true,
-      initial_balance_ars: 0,
     });
 
     if (accErr) {
-      // Ignorar si ya existe (idempotente)
+      if (accErr.code === '23505') {
+        // Idempotencia: ya existe cuenta para este cliente
+      } else {
+        throw new DomainError(`Error creando cuenta financiera para cliente ${data.id}: ${accErr.message}`);
+      }
     }
 
     return this.mapToRecord(data);
   }
 
   async update(id: string, input: UpdateCustomerInput): Promise<CustomerRecord> {
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Database['public']['Tables']['customers']['Update'] = {
       updated_at: new Date().toISOString(),
     };
 
@@ -119,9 +124,9 @@ export class CustomerRepository extends BaseSupabaseRepository {
     if (input.transportName !== undefined) updatePayload.transport_name = input.transportName;
     if (input.transportAddress !== undefined) updatePayload.transport_address = input.transportAddress;
     if (input.category !== undefined) updatePayload.category = input.category;
-    if (input.discount1Pct !== undefined) updatePayload.discount_1_pct = Number(new Decimal(input.discount1Pct).toNumericString());
-    if (input.discount2Pct !== undefined) updatePayload.discount_2_pct = Number(new Decimal(input.discount2Pct).toNumericString());
-    if (input.discount3Pct !== undefined) updatePayload.discount_3_pct = Number(new Decimal(input.discount3Pct).toNumericString());
+    if (input.discount1Pct !== undefined) updatePayload.discount_1_pct = Number(toNumericString(new Decimal(input.discount1Pct)));
+    if (input.discount2Pct !== undefined) updatePayload.discount_2_pct = Number(toNumericString(new Decimal(input.discount2Pct)));
+    if (input.discount3Pct !== undefined) updatePayload.discount_3_pct = Number(toNumericString(new Decimal(input.discount3Pct)));
     if (input.active !== undefined) updatePayload.active = input.active;
 
     const { data, error } = await this.client

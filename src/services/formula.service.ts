@@ -7,7 +7,7 @@ import { MasterItemRepository } from '@/repositories/master-item.repository';
 import { CodeSequenceService } from './code-sequence.service';
 import { CostEngineService } from './cost-engine.service';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
 
 export interface FormulaItemInput {
   rawMaterialId: string;
@@ -213,8 +213,7 @@ export class FormulaDomainService {
     for (const item of items) {
       let unitCost = new Decimal(0);
       try {
-        const costData = await this.costEngineService.getCurrentStockItemCost(item.rawMaterialId);
-        unitCost = costData.unitCostGrossArs;
+        unitCost = await this.costEngineService.getCurrentStockItemCost(item.rawMaterialId);
       } catch {
         unitCost = new Decimal(0);
       }
@@ -278,7 +277,7 @@ export class FormulaDomainService {
       }
 
       // Máximo 3 decimales para kg
-      const str = qty.toNumericString();
+      const str = toNumericString(qty);
       const parts = str.split('.');
       if (parts.length > 1 && parts[1].length > 3) {
         throw new DomainError(`La cantidad en kg para ${mpr.name} no puede exceder 3 decimales.`);

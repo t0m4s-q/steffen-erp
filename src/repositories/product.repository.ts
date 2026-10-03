@@ -1,6 +1,7 @@
 import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
-import { Decimal } from '@/domain/decimal';
+import { Decimal, toNumericString } from '@/domain/decimal';
+import type { Database } from '@/database/types';
 
 export interface ProductDetailsRecord {
   productId: string;
@@ -79,14 +80,14 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
         weight_kg,
         extra_variable_pct,
         created_at,
-        stock_items:stock_item_id (
+        stock_items (
           code,
           name,
           stock_minimum,
           active,
           created_date
         ),
-        base_products:base_product_id (
+        base_products (
           code,
           name
         )
@@ -118,14 +119,15 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
     const { data, error } = await this.client
       .from('product_components')
       .select(`
-        id,
         product_id,
         component_id,
         quantity_per_unit,
         sort_order,
-        stock_items:component_id (
-          code,
-          name
+        components (
+          stock_items (
+            code,
+            name
+          )
         )
       `)
       .eq('product_id', productId)
@@ -135,15 +137,19 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
       throw new DomainError(`Error obteniendo componentes del producto ${productId}: ${error.message}`);
     }
 
-    return (data || []).map((row: any) => ({
-      id: row.id,
-      productId: row.product_id,
-      componentId: row.component_id,
-      componentCode: row.stock_items?.code || '',
-      componentName: row.stock_items?.name || '',
-      quantityPerUnit: new Decimal(row.quantity_per_unit),
-      sortOrder: row.sort_order,
-    }));
+    return (data || []).map((row: any) => {
+      const compRecord = Array.isArray(row.components) ? row.components[0] : row.components;
+      const stockItem = Array.isArray(compRecord?.stock_items) ? compRecord.stock_items[0] : compRecord?.stock_items;
+      return {
+        id: `${row.product_id}_${row.component_id}`,
+        productId: row.product_id,
+        componentId: row.component_id,
+        componentCode: stockItem?.code || '',
+        componentName: stockItem?.name || '',
+        quantityPerUnit: new Decimal(row.quantity_per_unit),
+        sortOrder: row.sort_order,
+      };
+    });
   }
 
   async getPriceAtSnapshot(productId: string, priceListId: string, snapshotIso: string): Promise<Decimal | null> {
@@ -179,7 +185,7 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
         item_type: 'PRO',
         name: input.name,
         unit_type: 'UNIT',
-        stock_minimum: Number(input.stockMinimum.toNumericString()),
+        stock_minimum: Number(toNumericString(input.stockMinimum)),
         created_date: today,
         active: true,
       })
@@ -200,8 +206,8 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
         stock_item_id: productId,
         base_product_id: input.baseProductId,
         presentation: input.presentation,
-        weight_kg: Number(input.weightKg.toNumericString()),
-        extra_variable_pct: Number(extraVar.toNumericString()),
+        weight_kg: Number(toNumericString(input.weightKg)),
+        extra_variable_pct: Number(toNumericString(extraVar)),
       });
 
     if (prodErr) {
@@ -213,7 +219,7 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
       const compPayload = input.components.map((c, idx) => ({
         product_id: productId,
         component_id: c.componentId,
-        quantity_per_unit: Number(c.quantityPerUnit.toNumericString()),
+        quantity_per_unit: Number(toNumericString(c.quantityPerUnit)),
         sort_order: c.sortOrder ?? idx + 1,
       }));
 
@@ -230,7 +236,7 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
     await this.client.from('stock_balances').upsert(
       {
         stock_item_id: productId,
-        balance_raw: 0,
+        quantity: 0,
       },
       { onConflict: 'stock_item_id' }
     );
@@ -241,12 +247,12 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
 
   async updateProduct(productId: string, input: UpdateProductInput): Promise<ProductDetailsRecord> {
     // 1. Actualizar stock_items si corresponde
-    const itemUpdates: Record<string, any> = {
+    const itemUpdates: Database['public']['Tables']['stock_items']['Update'] = {
       updated_at: new Date().toISOString(),
     };
     if (input.name !== undefined) itemUpdates.name = input.name;
     if (input.stockMinimum !== undefined) {
-      itemUpdates.stock_minimum = Number(input.stockMinimum.toNumericString());
+      itemUpdates.stock_minimum = Number(toNumericString(input.stockMinimum));
     }
     if (input.active !== undefined) itemUpdates.active = input.active;
 
@@ -256,10 +262,10 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
       .eq('id', productId);
 
     // 2. Actualizar products si corresponde
-    const prodUpdates: Record<string, any> = {};
+    const prodUpdates: Database['public']['Tables']['products']['Update'] = {};
     if (input.baseProductId !== undefined) prodUpdates.base_product_id = input.baseProductId;
     if (input.presentation !== undefined) prodUpdates.presentation = input.presentation;
-    if (input.weightKg !== undefined) prodUpdates.weight_kg = Number(input.weightKg.toNumericString());
+    if (input.weightKg !== undefined) prodUpdates.weight_kg = Number(toNumericString(input.weightKg));
 
     if (Object.keys(prodUpdates).length > 0) {
       await this.client
@@ -280,7 +286,7 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
         const compPayload = input.components.map((c, idx) => ({
           product_id: productId,
           component_id: c.componentId,
-          quantity_per_unit: Number(c.quantityPerUnit.toNumericString()),
+          quantity_per_unit: Number(toNumericString(c.quantityPerUnit)),
           sort_order: c.sortOrder ?? idx + 1,
         }));
 
@@ -302,14 +308,14 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
         weight_kg,
         extra_variable_pct,
         created_at,
-        stock_items:stock_item_id (
+        stock_items (
           code,
           name,
           stock_minimum,
           active,
           created_date
         ),
-        base_products:base_product_id (
+        base_products (
           code,
           name
         )
