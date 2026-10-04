@@ -38,9 +38,9 @@ export class MasterItemDomainService {
   constructor(
     private readonly masterItemRepo: MasterItemRepository,
     private readonly supplierRepo: SupplierRepository,
-    private readonly codeSequenceService: CodeSequenceService,
-    private readonly stockDomainService: StockDomainService,
-    private readonly costEngineService: CostEngineService,
+    private readonly codeSequenceService?: CodeSequenceService,
+    private readonly stockDomainService: StockDomainService = new StockDomainService(),
+    private readonly costEngineService: CostEngineService = new CostEngineService(),
     private readonly supplierItemRepo: ISupplierItemRepository = new SupplierItemRepository()
   ) {}
 
@@ -57,6 +57,16 @@ export class MasterItemDomainService {
     // Validar precisión máxima de 3 decimales para KG
     this.validateKgPrecision(minStock, 'stock mínimo');
 
+    if (dto.initialStock !== undefined && dto.initialStock !== null) {
+      const initStock = new Decimal(dto.initialStock);
+      if (initStock.lessThan(0)) {
+        throw new DomainError('El stock inicial no puede ser negativo.');
+      }
+      if (initStock.greaterThan(0)) {
+        this.validateKgPrecision(initStock, 'stock inicial');
+      }
+    }
+
     // Validar proveedor inicial
     const supplier = await this.supplierRepo.findById(dto.initialSupplierId);
     if (!supplier) {
@@ -71,40 +81,16 @@ export class MasterItemDomainService {
       throw new DomainError('El precio cotizado inicial debe ser mayor a cero.');
     }
 
-    // 1. Generar código automático MPRxxxx
-    const code = await this.codeSequenceService.generateVisibleCode('MPR');
-
-    // 2. Crear ítem maestro
-    const item = await this.masterItemRepo.create({
-      code,
+    return this.masterItemRepo.createAtomic({
       itemType: 'MPR',
       name: dto.name.trim(),
-      unitType: 'KG',
       stockMinimum: minStock,
+      initialSupplierId: dto.initialSupplierId,
+      initialQuotedPriceNet: initialPrice,
+      initialStock: dto.initialStock,
       inci: dto.inci ? dto.inci.trim() : null,
       createdDate: dto.createdDate,
     });
-
-    // 3. Asociar relación con proveedor inicial
-    await this.supplierRepo.upsertSupplierItem(supplier.id, item.id, initialPrice);
-
-    // 4. Si se definió stock inicial > 0, registrar mediante MST AJUSTE transaccional
-    if (dto.initialStock !== undefined && dto.initialStock !== null) {
-      const initStock = new Decimal(dto.initialStock);
-      if (initStock.greaterThan(0)) {
-        this.validateKgPrecision(initStock, 'stock inicial');
-        const operationId = await this.masterItemRepo.createAdjustmentOperation(dto.createdDate);
-        await this.stockDomainService.applyStockMovement({
-          operationId,
-          stockItemId: item.id,
-          movementType: 'AJUSTE',
-          quantityDelta: initStock,
-          description: 'Stock inicial de alta de Materia Prima',
-        });
-      }
-    }
-
-    return item;
   }
 
   async createComponent(dto: CreateComponentDto): Promise<MasterItemRecord> {
@@ -117,6 +103,16 @@ export class MasterItemDomainService {
       throw new DomainError('El stock mínimo de un Componente debe ser un número entero mayor a 0 unidades.');
     }
 
+    if (dto.initialStock !== undefined && dto.initialStock !== null) {
+      const initStock = new Decimal(dto.initialStock);
+      if (initStock.lessThan(0)) {
+        throw new DomainError('El stock inicial no puede ser negativo.');
+      }
+      if (initStock.greaterThan(0) && !initStock.isInteger()) {
+        throw new DomainError('El stock inicial de un Componente debe ser un número entero de unidades.');
+      }
+    }
+
     // Validar proveedor inicial
     const supplier = await this.supplierRepo.findById(dto.initialSupplierId);
     if (!supplier) {
@@ -131,41 +127,15 @@ export class MasterItemDomainService {
       throw new DomainError('El precio cotizado inicial debe ser mayor a cero.');
     }
 
-    // 1. Generar código automático COMxxxx
-    const code = await this.codeSequenceService.generateVisibleCode('COM');
-
-    // 2. Crear ítem maestro
-    const item = await this.masterItemRepo.create({
-      code,
+    return this.masterItemRepo.createAtomic({
       itemType: 'COM',
       name: dto.name.trim(),
-      unitType: 'UNIT',
       stockMinimum: minStock,
+      initialSupplierId: dto.initialSupplierId,
+      initialQuotedPriceNet: initialPrice,
+      initialStock: dto.initialStock,
       createdDate: dto.createdDate,
     });
-
-    // 3. Asociar relación con proveedor inicial
-    await this.supplierRepo.upsertSupplierItem(supplier.id, item.id, initialPrice);
-
-    // 4. Si se definió stock inicial > 0, registrar mediante MST AJUSTE transaccional
-    if (dto.initialStock !== undefined && dto.initialStock !== null) {
-      const initStock = new Decimal(dto.initialStock);
-      if (initStock.greaterThan(0)) {
-        if (!initStock.isInteger()) {
-          throw new DomainError('El stock inicial de un Componente debe ser un número entero de unidades.');
-        }
-        const operationId = await this.masterItemRepo.createAdjustmentOperation(dto.createdDate);
-        await this.stockDomainService.applyStockMovement({
-          operationId,
-          stockItemId: item.id,
-          movementType: 'AJUSTE',
-          quantityDelta: initStock,
-          description: 'Stock inicial de alta de Componente',
-        });
-      }
-    }
-
-    return item;
   }
 
   async updateMasterItem(id: string, dto: UpdateMasterItemInput): Promise<MasterItemRecord> {

@@ -30,7 +30,7 @@ export interface SupplierItemRecord {
 }
 
 export interface CreateSupplierInput {
-  code: string;
+  code?: string;
   name: string;
   salesperson?: string | null;
   phone?: string | null;
@@ -47,40 +47,16 @@ export interface UpdateSupplierInput {
 
 export class SupplierRepository extends BaseSupabaseRepository {
   async create(input: CreateSupplierInput): Promise<SupplierRecord> {
-    const { data, error } = await this.client
-      .from('suppliers')
-      .insert({
-        code: input.code,
-        name: input.name,
-        salesperson: input.salesperson || null,
-        phone: input.phone || null,
-        currency_code: input.currencyCode,
-        created_date: input.createdDate || new Date().toISOString().split('T')[0],
-        active: true,
-      })
-      .select('*')
-      .single();
+    const { data, error } = await this.client.rpc('create_supplier_with_account', {
+      p_name: input.name,
+      p_currency_code: input.currencyCode,
+      p_salesperson: input.salesperson || undefined,
+      p_phone: input.phone || undefined,
+      p_created_date: input.createdDate || new Date().toISOString().split('T')[0],
+    });
 
     if (error || !data) {
       throw new DomainError(`Error creando proveedor: ${error?.message || 'Sin datos devueltos'}`);
-    }
-
-    // Crear cuenta contable SUPPLIER_PAYABLE
-    const { error: accErr } = await this.client.from('financial_accounts').insert({
-      name: `Deuda Proveedor - ${input.name}`,
-      account_type: 'SUPPLIER_PAYABLE',
-      supplier_id: data.id,
-      customer_id: null,
-      current_balance: 0,
-      active: true,
-    });
-
-    if (accErr) {
-      if (accErr.code === '23505') {
-        // Idempotencia: ya existe cuenta para este proveedor
-      } else {
-        throw new DomainError(`Error creando cuenta financiera para proveedor ${data.id}: ${accErr.message}`);
-      }
     }
 
     return this.mapToRecord(data);

@@ -21,7 +21,7 @@ export interface UpdateSupplierDto {
 export class SupplierDomainService {
   constructor(
     private readonly supplierRepo: SupplierRepository,
-    private readonly codeSequenceService: CodeSequenceService
+    private readonly codeSequenceService?: CodeSequenceService
   ) {}
 
   async createSupplier(dto: CreateSupplierDto): Promise<SupplierRecord> {
@@ -33,11 +33,7 @@ export class SupplierDomainService {
       throw new DomainError('La moneda del proveedor es obligatoria y debe ser ARS o USD.');
     }
 
-    // Generar código automático PRVxxxx
-    const code = await this.codeSequenceService.generateVisibleCode('PRV');
-
     return this.supplierRepo.create({
-      code,
       name: dto.name.trim(),
       salesperson: dto.salesperson ? dto.salesperson.trim() : null,
       phone: dto.phone ? dto.phone.trim() : null,

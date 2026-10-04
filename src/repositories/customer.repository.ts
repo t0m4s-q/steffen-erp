@@ -25,7 +25,7 @@ export interface CustomerRecord {
 }
 
 export interface CreateCustomerInput {
-  code: string;
+  code?: string;
   name: string;
   dni?: string | null;
   address?: string | null;
@@ -63,48 +63,24 @@ export class CustomerRepository extends BaseSupabaseRepository {
     const d2 = new Decimal(input.discount2Pct ?? 0);
     const d3 = new Decimal(input.discount3Pct ?? 0);
 
-    const { data, error } = await this.client
-      .from('customers')
-      .insert({
-        code: input.code,
-        name: input.name,
-        dni: input.dni || null,
-        address: input.address || null,
-        locality: input.locality || null,
-        province: input.province || null,
-        phone: input.phone || null,
-        transport_name: input.transportName || null,
-        transport_address: input.transportAddress || null,
-        category: input.category || null,
-        discount_1_pct: Number(toNumericString(d1)),
-        discount_2_pct: Number(toNumericString(d2)),
-        discount_3_pct: Number(toNumericString(d3)),
-        created_date: input.createdDate || new Date().toISOString().split('T')[0],
-        active: true,
-      })
-      .select('*')
-      .single();
+    const { data, error } = await this.client.rpc('create_customer_with_account', {
+      p_name: input.name,
+      p_dni: input.dni || undefined,
+      p_address: input.address || undefined,
+      p_locality: input.locality || undefined,
+      p_province: input.province || undefined,
+      p_phone: input.phone || undefined,
+      p_transport_name: input.transportName || undefined,
+      p_transport_address: input.transportAddress || undefined,
+      p_category: input.category || undefined,
+      p_discount_1_pct: Number(toNumericString(d1)),
+      p_discount_2_pct: Number(toNumericString(d2)),
+      p_discount_3_pct: Number(toNumericString(d3)),
+      p_created_date: input.createdDate || new Date().toISOString().split('T')[0],
+    });
 
     if (error || !data) {
       throw new DomainError(`Error creando cliente: ${error?.message || 'Sin datos devueltos'}`);
-    }
-
-    // Crear cuenta contable CUSTOMER_RECEIVABLE
-    const { error: accErr } = await this.client.from('financial_accounts').insert({
-      name: `Cuenta Corriente - ${input.name}`,
-      account_type: 'CUSTOMER_RECEIVABLE',
-      customer_id: data.id,
-      supplier_id: null,
-      current_balance: 0,
-      active: true,
-    });
-
-    if (accErr) {
-      if (accErr.code === '23505') {
-        // Idempotencia: ya existe cuenta para este cliente
-      } else {
-        throw new DomainError(`Error creando cuenta financiera para cliente ${data.id}: ${accErr.message}`);
-      }
     }
 
     return this.mapToRecord(data);

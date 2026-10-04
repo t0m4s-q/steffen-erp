@@ -27,6 +27,17 @@ export interface CreateMasterItemInput {
   createdDate?: string;
 }
 
+export interface CreateMasterItemAtomicInput {
+  itemType: 'MPR' | 'COM';
+  name: string;
+  stockMinimum: Decimal | number | string;
+  initialSupplierId: string;
+  initialQuotedPriceNet: Decimal | number | string;
+  initialStock?: Decimal | number | string;
+  inci?: string | null;
+  createdDate?: string;
+}
+
 export interface UpdateMasterItemInput {
   name?: string;
   stockMinimum?: Decimal;
@@ -35,6 +46,30 @@ export interface UpdateMasterItemInput {
 }
 
 export class MasterItemRepository extends BaseSupabaseRepository {
+  async createAtomic(input: CreateMasterItemAtomicInput): Promise<MasterItemRecord> {
+    const minStock = new Decimal(input.stockMinimum);
+    const initialPrice = new Decimal(input.initialQuotedPriceNet);
+    const initialStock = input.initialStock !== undefined && input.initialStock !== null
+      ? new Decimal(input.initialStock)
+      : new Decimal(0);
+
+    const { data, error } = await this.client.rpc('create_master_item', {
+      p_item_type: input.itemType,
+      p_name: input.name,
+      p_stock_minimum: Number(toNumericString(minStock)),
+      p_initial_supplier_id: input.initialSupplierId,
+      p_initial_quoted_price_net: Number(toNumericString(initialPrice)),
+      p_initial_stock: Number(toNumericString(initialStock)),
+      p_inci: input.inci || undefined,
+      p_created_date: input.createdDate || new Date().toISOString().split('T')[0],
+    });
+
+    if (error || !data) {
+      throw new DomainError(`Error creando ítem maestro atómicamente: ${error?.message || 'Sin datos devueltos'}`);
+    }
+
+    return this.mapToRecord(data as Record<string, any>, input.inci);
+  }
   async create(input: CreateMasterItemInput): Promise<MasterItemRecord> {
     const { data: itemData, error: itemErr } = await this.client
       .from('stock_items')

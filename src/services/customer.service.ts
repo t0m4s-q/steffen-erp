@@ -6,7 +6,7 @@ import { Decimal } from '@/domain/decimal';
 export class CustomerDomainService {
   constructor(
     private readonly customerRepo: CustomerRepository,
-    private readonly codeSequenceService: CodeSequenceService
+    private readonly codeSequenceService?: CodeSequenceService
   ) {}
 
   async createCustomer(dto: Omit<CreateCustomerInput, 'code'>): Promise<CustomerRecord> {
@@ -16,12 +16,8 @@ export class CustomerDomainService {
 
     this.validateDiscounts(dto.discount1Pct, dto.discount2Pct, dto.discount3Pct);
 
-    // Generar código automático CLIxxxx
-    const code = await this.codeSequenceService.generateVisibleCode('CLI');
-
     return this.customerRepo.create({
       ...dto,
-      code,
       name: dto.name.trim(),
     });
   }
