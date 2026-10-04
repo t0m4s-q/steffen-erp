@@ -1,6 +1,22 @@
 import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
 import { Decimal, toNumericString } from '@/domain/decimal';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database, Json } from '@/database/types';
+
+function parseJsonObject(json: Json | undefined): Record<string, Json | undefined> {
+  if (typeof json !== 'object' || json === null || Array.isArray(json)) {
+    throw new DomainError('Respuesta inesperada de la base de datos');
+  }
+  return json;
+}
+
+function parseJsonArray(json: Json | undefined): Json[] {
+  if (!Array.isArray(json)) {
+    return [];
+  }
+  return json;
+}
 
 export interface FormulaVersionItemRecord {
   id: string;
@@ -47,7 +63,6 @@ export interface CurrentFormulaRecord {
 export interface IFormulaRepository {
   getCurrentFormulaWithItems(baseProductId: string): Promise<CurrentFormulaRecord | null>;
   createBaseProductWithFormula(
-    code: string,
     name: string,
     items: Array<{ rawMaterialId: string; quantityKg: Decimal; sortOrder?: number }>,
     observations?: string | null,
@@ -115,80 +130,63 @@ export class FormulaRepository extends BaseSupabaseRepository implements IFormul
   }
 
   async createBaseProductWithFormula(
-    code: string,
     name: string,
     items: Array<{ rawMaterialId: string; quantityKg: Decimal; sortOrder?: number }>,
     observations?: string | null,
     createdDate?: string
   ): Promise<{ baseProduct: BaseProductRecord; formulaVersion: FormulaVersionFullRecord }> {
-    const today = createdDate || new Date().toISOString().split('T')[0];
-
-    // 1. Crear base_products
-    const { data: bpData, error: bpErr } = await this.client
-      .from('base_products')
-      .insert({
-        code,
-        name,
-        created_date: today,
-        active: true,
-      })
-      .select('*')
-      .single();
-
-    if (bpErr || !bpData) {
-      throw new DomainError(`Error creando Producto Base: ${bpErr?.message || 'Sin datos devueltos'}`);
-    }
-
-    const baseProductId = bpData.id;
-
-    // 2. Crear formula_versions v1
-    const { data: vData, error: vErr } = await this.client
-      .from('formula_versions')
-      .insert({
-        base_product_id: baseProductId,
-        version_number: 1,
-        is_current: true,
-        observations: observations || null,
-        business_date: today,
-      })
-      .select('*')
-      .single();
-
-    if (vErr || !vData) {
-      throw new DomainError(`Error creando versión 1 de fórmula: ${vErr?.message || 'Sin datos devueltos'}`);
-    }
-
-    const versionId = vData.id;
-
-    // 3. Crear formula_version_items
     const itemsPayload = items.map((item, index) => ({
-      formula_version_id: versionId,
       raw_material_id: item.rawMaterialId,
       quantity_kg: Number(toNumericString(item.quantityKg)),
       sort_order: item.sortOrder ?? index + 1,
     }));
 
-    const { error: itemsErr } = await this.client
-      .from('formula_version_items')
-      .insert(itemsPayload);
+    const { data, error } = await this.client.rpc('create_base_product_with_formula', {
+      p_name: name,
+      p_items: itemsPayload,
+      p_observations: observations || undefined,
+      p_business_date: createdDate || undefined,
+    });
 
-    if (itemsErr) {
-      throw new DomainError(`Error creando items de fórmula: ${itemsErr.message}`);
+    if (error || !data) {
+      throw new DomainError(`Error creando Producto Base con fórmula: ${error?.message || 'Sin datos devueltos'}`);
     }
 
-    const fullVersion = await this.getFormulaVersionWithItems(versionId);
+    const resObj = parseJsonObject(data);
+    const rawBp = parseJsonObject(resObj.base_product);
+    const rawVersion = parseJsonObject(resObj.formula_version);
+    const rawItems = parseJsonArray(rawVersion.items);
 
     return {
       baseProduct: {
-        id: bpData.id,
-        code: bpData.code,
-        name: bpData.name,
-        active: bpData.active,
-        createdDate: bpData.created_date,
-        createdAt: bpData.created_at,
-        updatedAt: bpData.updated_at,
+        id: String(rawBp.id),
+        code: String(rawBp.code),
+        name: String(rawBp.name),
+        active: Boolean(rawBp.active),
+        createdDate: String(rawBp.created_date),
+        createdAt: String(rawBp.created_at),
+        updatedAt: String(rawBp.updated_at),
       },
-      formulaVersion: fullVersion!,
+      formulaVersion: {
+        id: String(rawVersion.id),
+        baseProductId: String(rawVersion.base_product_id),
+        versionNumber: Number(rawVersion.version_number),
+        businessDate: String(rawVersion.business_date),
+        observations: rawVersion.observations ? String(rawVersion.observations) : null,
+        isCurrent: Boolean(rawVersion.is_current),
+        createdAt: String(rawVersion.created_at),
+        items: rawItems.map((itemJson) => {
+          const r = parseJsonObject(itemJson);
+          return {
+            id: String(r.id),
+            rawMaterialId: String(r.raw_material_id),
+            rawMaterialCode: String(r.raw_material_code),
+            rawMaterialName: String(r.raw_material_name),
+            quantityKg: new Decimal(String(r.quantity_kg)),
+            sortOrder: Number(r.sort_order),
+          };
+        }),
+      },
     };
   }
 
@@ -198,57 +196,46 @@ export class FormulaRepository extends BaseSupabaseRepository implements IFormul
     observations?: string | null,
     businessDate?: string
   ): Promise<FormulaVersionFullRecord> {
-    const today = businessDate || new Date().toISOString().split('T')[0];
-
-    // Obtener versión vigente actual
-    const current = await this.getCurrentFormulaWithItems(baseProductId);
-    const nextVersionNumber = current ? current.versionNumber + 1 : 1;
-
-    // Desactivar versión vigente anterior
-    if (current) {
-      await this.client
-        .from('formula_versions')
-        .update({ is_current: false })
-        .eq('id', current.formulaVersionId);
-    }
-
-    // Insertar nueva versión vigente
-    const { data: newVData, error: newVErr } = await this.client
-      .from('formula_versions')
-      .insert({
-        base_product_id: baseProductId,
-        version_number: nextVersionNumber,
-        is_current: true,
-        observations: observations || null,
-        business_date: today,
-      })
-      .select('*')
-      .single();
-
-    if (newVErr || !newVData) {
-      throw new DomainError(`Error creando nueva versión de fórmula: ${newVErr?.message || 'Sin datos'}`);
-    }
-
-    const newVersionId = newVData.id;
-
-    // Insertar items de la nueva versión
     const itemsPayload = items.map((item, index) => ({
-      formula_version_id: newVersionId,
       raw_material_id: item.rawMaterialId,
       quantity_kg: Number(toNumericString(item.quantityKg)),
       sort_order: item.sortOrder ?? index + 1,
     }));
 
-    const { error: itemsErr } = await this.client
-      .from('formula_version_items')
-      .insert(itemsPayload);
+    const { data, error } = await this.client.rpc('create_new_formula_version', {
+      p_base_product_id: baseProductId,
+      p_items: itemsPayload,
+      p_observations: observations || undefined,
+      p_business_date: businessDate || undefined,
+    });
 
-    if (itemsErr) {
-      throw new DomainError(`Error insertando items en versión ${nextVersionNumber}: ${itemsErr.message}`);
+    if (error || !data) {
+      throw new DomainError(`Error creando nueva versión de fórmula: ${error?.message || 'Sin datos devueltos'}`);
     }
 
-    const fullVersion = await this.getFormulaVersionWithItems(newVersionId);
-    return fullVersion!;
+    const resObj = parseJsonObject(data);
+    const rawItems = parseJsonArray(resObj.items);
+
+    return {
+      id: String(resObj.id),
+      baseProductId: String(resObj.base_product_id),
+      versionNumber: Number(resObj.version_number),
+      businessDate: String(resObj.business_date),
+      observations: resObj.observations ? String(resObj.observations) : null,
+      isCurrent: Boolean(resObj.is_current),
+      createdAt: String(resObj.created_at),
+      items: rawItems.map((itemJson) => {
+        const r = parseJsonObject(itemJson);
+        return {
+          id: String(r.id),
+          rawMaterialId: String(r.raw_material_id),
+          rawMaterialCode: String(r.raw_material_code),
+          rawMaterialName: String(r.raw_material_name),
+          quantityKg: new Decimal(String(r.quantity_kg)),
+          sortOrder: Number(r.sort_order),
+        };
+      }),
+    };
   }
 
   async getFormulaVersionWithItems(versionId: string): Promise<FormulaVersionFullRecord | null> {

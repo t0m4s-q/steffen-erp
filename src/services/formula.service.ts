@@ -4,7 +4,6 @@ import {
   FormulaVersionFullRecord,
 } from '@/repositories/formula.repository';
 import { MasterItemRepository } from '@/repositories/master-item.repository';
-import { CodeSequenceService } from './code-sequence.service';
 import { CostEngineService } from './cost-engine.service';
 import { DomainError } from '@/domain/errors';
 import { Decimal, toNumericString } from '@/domain/decimal';
@@ -55,7 +54,6 @@ export class FormulaDomainService {
   constructor(
     private readonly formulaRepo: FormulaRepository,
     private readonly masterItemRepo: MasterItemRepository,
-    private readonly codeSequenceService: CodeSequenceService,
     private readonly costEngineService: CostEngineService
   ) {}
 
@@ -75,12 +73,8 @@ export class FormulaDomainService {
     // Validar anti-duplicados y consistencia de MPR
     const sanitizedItems = await this.validateAndSanitizeItems(dto.items);
 
-    // 1. Generar código automático PBAxxxx
-    const code = await this.codeSequenceService.generateVisibleCode('PBA');
-
-    // 2. Crear base_products + formula_versions v1
+    // Crear atómicamente base_products + formula_versions v1 + items
     const { baseProduct, formulaVersion } = await this.formulaRepo.createBaseProductWithFormula(
-      code,
       dto.name.trim(),
       sanitizedItems,
       dto.observations,

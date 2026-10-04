@@ -1352,11 +1352,17 @@ isOneToOne: false
             "apply_stock_movement":
 { Args: { "p_description": string,"p_movement_type": string,"p_operation_id": string,"p_quantity_delta": number,"p_stock_item_id": string }; Returns: Json
                            },
+"create_base_product_with_formula":
+{ Args: { "p_business_date"?: string,"p_items": Json,"p_name": string,"p_observations"?: string }; Returns: Json
+                           },
 "create_customer_with_account":
 { Args: { "p_address"?: string,"p_category"?: string,"p_created_date"?: string,"p_discount_1_pct"?: number,"p_discount_2_pct"?: number,"p_discount_3_pct"?: number,"p_dni"?: string,"p_locality"?: string,"p_name": string,"p_phone"?: string,"p_province"?: string,"p_transport_address"?: string,"p_transport_name"?: string }; Returns: Json
                            },
 "create_master_item":
 { Args: { "p_created_date"?: string,"p_inci"?: string,"p_initial_quoted_price_net": number,"p_initial_stock"?: number,"p_initial_supplier_id": string,"p_item_type": string,"p_name": string,"p_stock_minimum": number }; Returns: Json
+                           },
+"create_new_formula_version":
+{ Args: { "p_base_product_id": string,"p_business_date"?: string,"p_items": Json,"p_observations"?: string }; Returns: Json
                            },
 "create_supplier_with_account":
 { Args: { "p_created_date"?: string,"p_currency_code": string,"p_name": string,"p_phone"?: string,"p_salesperson"?: string }; Returns: Json
