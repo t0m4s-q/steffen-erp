@@ -1358,6 +1358,9 @@ isOneToOne: false
 "create_customer_with_account":
 { Args: { "p_address"?: string,"p_category"?: string,"p_created_date"?: string,"p_discount_1_pct"?: number,"p_discount_2_pct"?: number,"p_discount_3_pct"?: number,"p_dni"?: string,"p_locality"?: string,"p_name": string,"p_phone"?: string,"p_province"?: string,"p_transport_address"?: string,"p_transport_name"?: string }; Returns: Json
                            },
+"create_final_product":
+{ Args: { "p_base_product_id": string,"p_components": Json,"p_created_date"?: string,"p_initial_stock"?: number,"p_name": string,"p_presentation": string,"p_stock_minimum": number,"p_weight_kg": number }; Returns: Json
+                           },
 "create_master_item":
 { Args: { "p_created_date"?: string,"p_inci"?: string,"p_initial_quoted_price_net": number,"p_initial_stock"?: number,"p_initial_supplier_id": string,"p_item_type": string,"p_name": string,"p_stock_minimum": number }; Returns: Json
                            },
@@ -1372,6 +1375,9 @@ isOneToOne: false
                            },
 "post_patrimonial_movement":
 { Args: { "p_amount_ars": number,"p_description": string,"p_entries": Json,"p_movement_type": string,"p_operation_id": string }; Returns: Json
+                           },
+"update_final_product_metadata":
+{ Args: { "p_active"?: boolean,"p_name"?: string,"p_presentation"?: string,"p_product_id": string,"p_stock_minimum"?: number }; Returns: Json
                            }
           }
           Enums: {
