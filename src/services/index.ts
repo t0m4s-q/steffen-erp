@@ -4,3 +4,4 @@ export * from './stock.service';
 export * from './patrimony.service';
 export * from './pricing.service';
 export * from './product.service';
+export * from './price-list.service';

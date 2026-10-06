@@ -1349,7 +1349,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "apply_stock_movement":
+            "apply_bulk_price_increase":
+{ Args: { "p_percentage": number,"p_price_list_id": string,"p_product_ids"?: (string)[] }; Returns: Json
+                           },
+"apply_stock_movement":
 { Args: { "p_description": string,"p_movement_type": string,"p_operation_id": string,"p_quantity_delta": number,"p_stock_item_id": string }; Returns: Json
                            },
 "create_base_product_with_formula":
@@ -1367,6 +1370,9 @@ isOneToOne: false
 "create_new_formula_version":
 { Args: { "p_base_product_id": string,"p_business_date"?: string,"p_items": Json,"p_observations"?: string }; Returns: Json
                            },
+"create_price_list":
+{ Args: { "p_name": string }; Returns: Json
+                           },
 "create_supplier_with_account":
 { Args: { "p_created_date"?: string,"p_currency_code": string,"p_name": string,"p_phone"?: string,"p_salesperson"?: string }; Returns: Json
                            },
@@ -1376,8 +1382,14 @@ isOneToOne: false
 "post_patrimonial_movement":
 { Args: { "p_amount_ars": number,"p_description": string,"p_entries": Json,"p_movement_type": string,"p_operation_id": string }; Returns: Json
                            },
+"set_product_price":
+{ Args: { "p_price_ars": number,"p_price_list_id": string,"p_product_id": string }; Returns: Json
+                           },
 "update_final_product_metadata":
 { Args: { "p_active"?: boolean,"p_name"?: string,"p_presentation"?: string,"p_product_id": string,"p_stock_minimum"?: number }; Returns: Json
+                           },
+"update_price_list":
+{ Args: { "p_active"?: boolean,"p_name"?: string,"p_price_list_id": string }; Returns: Json
                            }
           }
           Enums: {
