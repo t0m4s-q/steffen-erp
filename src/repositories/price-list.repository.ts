@@ -57,6 +57,7 @@ export interface BulkPriceIncreaseResult {
 export interface IPriceListRepository {
   listPriceLists(includeInactive?: boolean): Promise<PriceListRecord[]>;
   getPriceListById(id: string): Promise<PriceListRecord | null>;
+  getPriceListBySystemRole(role: 'SALON_DEFAULT' | 'PUBLIC_DEFAULT' | 'ECOMMERCE_DEFAULT'): Promise<PriceListRecord | null>;
   createPriceList(name: string): Promise<PriceListRecord>;
   updatePriceList(id: string, input: { name?: string; active?: boolean }): Promise<PriceListRecord>;
   getCurrentPrice(priceListId: string, productId: string): Promise<ProductPriceVersionRecord | null>;
@@ -102,6 +103,31 @@ export class PriceListRepository extends BaseSupabaseRepository implements IPric
 
     if (error) {
       throw new DomainError(`Error obteniendo lista de precios ${id}: ${error.message}`);
+    }
+
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      name: data.name,
+      systemRole: data.system_role as PriceListRecord['systemRole'],
+      active: data.active,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  }
+
+  async getPriceListBySystemRole(
+    role: 'SALON_DEFAULT' | 'PUBLIC_DEFAULT' | 'ECOMMERCE_DEFAULT'
+  ): Promise<PriceListRecord | null> {
+    const { data, error } = await this.client
+      .from('price_lists')
+      .select('id, name, system_role, active, created_at, updated_at')
+      .eq('system_role', role)
+      .maybeSingle();
+
+    if (error) {
+      throw new DomainError(`Error obteniendo lista de precios con rol de sistema ${role}: ${error.message}`);
     }
 
     if (!data) return null;

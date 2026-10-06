@@ -5,3 +5,4 @@ export * from './patrimony.service';
 export * from './pricing.service';
 export * from './product.service';
 export * from './price-list.service';
+export * from './cost-gain.service';
