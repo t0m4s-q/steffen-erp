@@ -20,6 +20,7 @@ export interface CustomerRecord {
   discount2Pct: Decimal;
   discount3Pct: Decimal;
   active: boolean;
+  balanceArs: Decimal;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,7 +110,7 @@ export class CustomerRepository extends BaseSupabaseRepository {
       .from('customers')
       .update(updatePayload)
       .eq('id', id)
-      .select('*')
+      .select('*, financial_accounts ( id, current_balance )')
       .single();
 
     if (error || !data) {
@@ -122,7 +123,7 @@ export class CustomerRepository extends BaseSupabaseRepository {
   async findById(id: string): Promise<CustomerRecord | null> {
     const { data, error } = await this.client
       .from('customers')
-      .select('*')
+      .select('*, financial_accounts ( id, current_balance )')
       .eq('id', id)
       .single();
 
@@ -133,7 +134,7 @@ export class CustomerRepository extends BaseSupabaseRepository {
   async findByCode(code: string): Promise<CustomerRecord | null> {
     const { data, error } = await this.client
       .from('customers')
-      .select('*')
+      .select('*, financial_accounts ( id, current_balance )')
       .eq('code', code)
       .single();
 
@@ -142,7 +143,10 @@ export class CustomerRepository extends BaseSupabaseRepository {
   }
 
   async listAll(includeInactive = true): Promise<CustomerRecord[]> {
-    let query = this.client.from('customers').select('*').order('created_at', { ascending: false });
+    let query = this.client
+      .from('customers')
+      .select('*, financial_accounts ( id, current_balance )')
+      .order('created_at', { ascending: false });
 
     if (!includeInactive) {
       query = query.eq('active', true);
@@ -157,6 +161,11 @@ export class CustomerRepository extends BaseSupabaseRepository {
   }
 
   private mapToRecord(row: any): CustomerRecord {
+    const acc = Array.isArray(row.financial_accounts)
+      ? row.financial_accounts[0]
+      : row.financial_accounts;
+    const balance = acc?.current_balance !== undefined ? acc.current_balance : 0;
+
     return {
       id: row.id,
       code: row.code,
@@ -174,6 +183,7 @@ export class CustomerRepository extends BaseSupabaseRepository {
       discount2Pct: new Decimal(row.discount_2_pct ?? 0),
       discount3Pct: new Decimal(row.discount_3_pct ?? 0),
       active: row.active,
+      balanceArs: new Decimal(balance),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

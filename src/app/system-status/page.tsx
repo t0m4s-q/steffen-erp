@@ -16,6 +16,13 @@ import { getAuthenticatedUser, isUserAuthorized } from '@/auth/guard';
 import { logoutAction } from '@/actions/auth.actions';
 import { MIGRATIONS_REGISTRY, SYSTEM_TABLES, SYSTEM_VIEWS } from '@/database/schema-info';
 
+export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: 'Estado del Sistema • Steffen ERP',
+  description: 'Auditoría técnica de base de datos, migraciones y servicios de Steffen ERP.',
+};
+
 export default async function HomePage() {
   const user = await getAuthenticatedUser();
 
@@ -42,6 +49,12 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[#B99D22] text-white hover:bg-[#a68c1c] transition-colors"
+            >
+              ← Ir al ERP Operativo
+            </a>
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Sesión Activa
