@@ -40,7 +40,7 @@ export default async function HomePage() {
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-[#B99D22] text-white flex items-center justify-center font-bold tracking-wider text-base shadow-sm">
+            <div className="h-10 w-10 rounded-lg bg-[#D2AB68] text-white flex items-center justify-center font-bold tracking-wider text-base shadow-sm">
               ST
             </div>
             <div>
@@ -51,7 +51,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-3">
             <a
               href="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[#B99D22] text-white hover:bg-[#a68c1c] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[2px] text-xs font-semibold bg-[#D2AB68] text-white hover:bg-[#c29b58] transition-colors"
             >
               ← Ir al ERP Operativo
             </a>

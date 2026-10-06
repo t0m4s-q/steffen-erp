@@ -22,8 +22,8 @@ export const pdfService = {
         <title>Remito ${rem.code}</title>
         <style>
           body { font-family: 'Inter', Arial, sans-serif; color: #393939; margin: 40px; font-size: 13px; line-height: 1.5; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #B99D22; padding-bottom: 15px; margin-bottom: 20px; }
-          .logo { font-size: 24px; font-weight: bold; color: #B99D22; letter-spacing: 1px; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #D2AB68; padding-bottom: 15px; margin-bottom: 20px; }
+          .logo { font-size: 24px; font-weight: bold; color: #D2AB68; letter-spacing: 1px; }
           .doc-title { text-align: right; }
           .doc-title h1 { margin: 0; font-size: 20px; color: #000; }
           .doc-title p { margin: 2px 0 0; color: #666; }
@@ -36,7 +36,7 @@ export const pdfService = {
           .totals { width: 320px; margin-left: auto; margin-top: 15px; }
           .totals-row { display: flex; justify-content: space-between; padding: 4px 0; }
           .totals-row.main { border-top: 1px solid #333; font-weight: bold; font-size: 14px; margin-top: 4px; padding-top: 6px; }
-          .totals-row.final { border-top: 2px solid #B99D22; font-weight: bold; font-size: 16px; color: #B99D22; margin-top: 6px; padding-top: 8px; }
+          .totals-row.final { border-top: 2px solid #D2AB68; font-weight: bold; font-size: 16px; color: #D2AB68; margin-top: 6px; padding-top: 8px; }
           .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #888; border-top: 1px solid #eee; padding-top: 10px; }
           @media print {
             body { margin: 20px; }
@@ -153,7 +153,7 @@ export const pdfService = {
         <style>
           body { font-family: 'Inter', Arial, sans-serif; color: #393939; margin: 40px; font-size: 13px; line-height: 1.5; }
           .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-          .logo { font-size: 22px; font-weight: bold; color: #B99D22; }
+          .logo { font-size: 22px; font-weight: bold; color: #D2AB68; }
           .internal-badge { display: inline-block; background: #000; color: #fff; padding: 3px 8px; font-weight: bold; font-size: 11px; border-radius: 3px; margin-top: 4px; }
           .doc-title { text-align: right; }
           .doc-title h1 { margin: 0; font-size: 20px; color: #000; }

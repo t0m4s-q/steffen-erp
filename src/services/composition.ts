@@ -4,6 +4,12 @@ import { CustomerRepository } from '@/repositories/customer.repository';
 import { CustomerDomainService } from '@/services/customer.service';
 import { SupplierRepository } from '@/repositories/supplier.repository';
 import { SupplierDomainService } from '@/services/supplier.service';
+import { MasterItemRepository } from '@/repositories/master-item.repository';
+import { MasterItemDomainService } from '@/services/master-item.service';
+import { StockRepository } from '@/repositories/stock.repository';
+import { StockDomainService } from '@/services/stock.service';
+import { SupplierItemRepository } from '@/repositories/supplier-item.repository';
+import { CostEngineService } from '@/services/cost-engine.service';
 
 /**
  * Composition Root para instanciación controlada y unificada de servicios
@@ -12,6 +18,7 @@ import { SupplierDomainService } from '@/services/supplier.service';
  */
 let customerServiceInstance: CustomerDomainService | null = null;
 let supplierServiceInstance: SupplierDomainService | null = null;
+let masterItemServiceInstance: MasterItemDomainService | null = null;
 
 export function getCustomerService(): CustomerDomainService {
   if (!customerServiceInstance) {
@@ -27,4 +34,24 @@ export function getSupplierService(): SupplierDomainService {
     supplierServiceInstance = new SupplierDomainService(supplierRepo);
   }
   return supplierServiceInstance;
+}
+
+export function getMasterItemService(): MasterItemDomainService {
+  if (!masterItemServiceInstance) {
+    const masterItemRepo = new MasterItemRepository(serverSupabase);
+    const supplierRepo = new SupplierRepository(serverSupabase);
+    const stockRepo = new StockRepository(serverSupabase);
+    const stockDomainService = new StockDomainService(stockRepo);
+    const supplierItemRepo = new SupplierItemRepository(serverSupabase);
+    const costEngineService = new CostEngineService(supplierItemRepo);
+    masterItemServiceInstance = new MasterItemDomainService(
+      masterItemRepo,
+      supplierRepo,
+      undefined,
+      stockDomainService,
+      costEngineService,
+      supplierItemRepo
+    );
+  }
+  return masterItemServiceInstance;
 }

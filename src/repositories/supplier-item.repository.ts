@@ -9,6 +9,7 @@ export interface LatestSupplierItemResult {
   stockItemId: string;
   quotedUnitPriceNet: Decimal;
   priceUpdatedAt: string;
+  supplierCode: string;
   supplierName: string;
   supplierCurrency: CurrencyCode;
 }
@@ -32,6 +33,7 @@ export class SupplierItemRepository extends BaseSupabaseRepository implements IS
         active,
         suppliers!inner (
           id,
+          code,
           name,
           currency_code,
           active
@@ -62,6 +64,7 @@ export class SupplierItemRepository extends BaseSupabaseRepository implements IS
       stockItemId: row.stock_item_id,
       quotedUnitPriceNet: new Decimal(row.quoted_unit_price_net),
       priceUpdatedAt: row.price_updated_at,
+      supplierCode: supplier.code,
       supplierName: supplier.name,
       supplierCurrency: supplier.currency_code as CurrencyCode,
     };

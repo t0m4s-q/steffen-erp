@@ -5,7 +5,7 @@ import { X, AlertCircle } from 'lucide-react';
 
 // Buttons
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'principal' | 'secundario' | 'verde' | 'rojo';
+  variant?: 'principal' | 'secundario' | 'verde' | 'rojo' | 'azul';
   size?: 'small' | 'large';
   children: ReactNode;
 }
@@ -19,14 +19,14 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center font-semibold rounded transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+    'inline-flex items-center justify-center font-semibold rounded-[2px] transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 
-  const sizeClasses = size === 'large' ? 'h-[70px] px-6 text-lg' : 'h-[40px] px-4 text-sm';
+  const sizeClasses = size === 'large' ? 'h-[70px] px-6 text-base font-bold' : 'h-[38px] px-4 text-xs font-bold uppercase';
 
   let variantClasses = '';
   switch (variant) {
     case 'principal':
-      variantClasses = 'bg-[#B99D22] hover:bg-[#a68c1c] text-white border border-[#B99D22]';
+      variantClasses = 'bg-[#D2AB68] hover:bg-[#c29b58] text-white border border-[#D2AB68]';
       break;
     case 'secundario':
       variantClasses = 'bg-white hover:bg-gray-100 text-[#000000] border border-[#D9D9D9]';
@@ -36,6 +36,9 @@ export const Button: React.FC<ButtonProps> = ({
       break;
     case 'rojo':
       variantClasses = 'bg-[#DD0000] hover:bg-[#B10000] text-white border border-[#DD0000]';
+      break;
+    case 'azul':
+      variantClasses = 'bg-[#0E50A0] hover:bg-[#0c4386] text-white border border-[#0E50A0]';
       break;
   }
 
@@ -112,7 +115,7 @@ export const ReadOnlyField: React.FC<{
     <label className="text-xs font-semibold uppercase tracking-wider text-[#393939]">{label}</label>
     <div
       className={`h-[40px] px-3 flex items-center rounded border border-[#D9D9D9] bg-gray-50 text-sm font-medium ${
-        highlight ? 'text-[#B99D22] font-bold' : 'text-[#393939]'
+        highlight ? 'text-[#D2AB68] font-bold' : 'text-[#393939]'
       }`}
     >
       {value}
@@ -160,13 +163,13 @@ export const Modal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className={`bg-white rounded-lg shadow-xl border border-[#D9D9D9] w-full ${maxWidth} my-6 max-h-[92vh] flex flex-col`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D9D9D9] bg-[#FBFBFB]">
-          <h2 className="text-xl font-bold text-[#000000]">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs overflow-y-auto">
+      <div className={`bg-white rounded-xl shadow-2xl border border-[#D9D9D9] w-full ${maxWidth} my-6 max-h-[92vh] flex flex-col`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D9D9D9]">
+          <h2 className="text-lg font-bold text-[#000000] uppercase tracking-wide">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded text-gray-500 hover:text-black hover:bg-gray-200 transition-colors"
+            className="p-1 rounded text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -188,13 +191,13 @@ export const ConfirmDialog: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-2xl border border-[#D9D9D9]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-[#D9D9D9]">
         <div className="flex items-center gap-3 text-[#DD0000] mb-3">
           <AlertCircle className="w-6 h-6" />
-          <h3 className="text-lg font-bold">{title}</h3>
+          <h3 className="text-base font-bold uppercase tracking-wide text-black">{title}</h3>
         </div>
-        <p className="text-sm text-[#393939] mb-6">{message}</p>
+        <p className="text-xs text-gray-600 mb-6 leading-relaxed">{message}</p>
         <div className="flex justify-end gap-3">
           <Button variant="secundario" onClick={onCancel}>
             Cancelar

@@ -45,11 +45,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Cabecera / Marca Steffen */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#B99D22] text-white shadow-md mb-3">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#D2AB68] text-white shadow-md mb-3">
             <Sparkles className="w-7 h-7" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-wider text-[#393939]">STEFFEN</h1>
-          <p className="text-xs uppercase tracking-widest text-[#B99D22] font-semibold mt-1">
+          <p className="text-xs uppercase tracking-widest text-[#D2AB68] font-semibold mt-1">
             Cosmética Capilar
           </p>
           <p className="text-sm text-neutral-500 mt-2">
@@ -93,7 +93,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@steffen.com"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-50 border border-[#D9D9D9] rounded-lg text-sm text-[#393939] placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#B99D22] focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-50 border border-[#D9D9D9] rounded-lg text-sm text-[#393939] placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#D2AB68] focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-50 border border-[#D9D9D9] rounded-lg text-sm text-[#393939] placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#B99D22] focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-50 border border-[#D9D9D9] rounded-lg text-sm text-[#393939] placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#D2AB68] focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 px-4 rounded-lg bg-[#B99D22] hover:bg-[#a38a1c] text-white text-sm font-semibold tracking-wide shadow-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full mt-2 py-3 px-4 rounded-[2px] bg-[#D2AB68] hover:bg-[#c29b58] text-white text-sm font-semibold tracking-wide shadow-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <>

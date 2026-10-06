@@ -29,9 +29,12 @@ export interface CreateComponentDto {
 export interface MasterItemWithCostAndBalance extends MasterItemRecord {
   balance: Decimal;
   currentTheoreticalCostGrossArs: Decimal | null;
+  referenceSupplierId: string | null;
+  referenceSupplierCode: string | null;
   referenceSupplierName: string | null;
   referencePriceNet: Decimal | null;
   referenceCurrency: 'ARS' | 'USD' | null;
+  referencePriceUpdatedAt: string | null;
 }
 
 export class MasterItemDomainService {
@@ -183,46 +186,32 @@ export class MasterItemDomainService {
   ): Promise<MasterItemWithCostAndBalance[]> {
     const items = await this.masterItemRepo.listAll(itemType, includeInactive);
 
-    const result: MasterItemWithCostAndBalance[] = [];
-    for (const item of items) {
-      let balance = new Decimal(0);
-      try {
-        balance = await this.stockDomainService.getStockBalance(item.id);
-      } catch {
-        // mantener 0 si no hay balance
-      }
+    const result = await Promise.all(
+      items.map(async (item) => {
+        const [balanceRes, costRes, latestSupplierRes] = await Promise.allSettled([
+          this.stockDomainService.getStockBalance(item.id),
+          this.costEngineService.getCurrentStockItemCost(item.id),
+          this.supplierItemRepo.getLatestSupplierItem(item.id),
+        ]);
 
-      let cost: Decimal | null = null;
-      let refSupplierName: string | null = null;
-      let refPriceNet: Decimal | null = null;
-      let refCurrency: 'ARS' | 'USD' | null = null;
+        const balance = balanceRes.status === 'fulfilled' ? balanceRes.value : new Decimal(0);
+        const cost = costRes.status === 'fulfilled' ? costRes.value : null;
+        const latestSupplierItem =
+          latestSupplierRes.status === 'fulfilled' ? latestSupplierRes.value : null;
 
-      try {
-        cost = await this.costEngineService.getCurrentStockItemCost(item.id);
-      } catch {
-        // sin costo definido aún
-      }
-
-      try {
-        const latestSupplierItem = await this.supplierItemRepo.getLatestSupplierItem(item.id);
-        if (latestSupplierItem) {
-          refSupplierName = latestSupplierItem.supplierName;
-          refPriceNet = latestSupplierItem.quotedUnitPriceNet;
-          refCurrency = latestSupplierItem.supplierCurrency as 'ARS' | 'USD';
-        }
-      } catch {
-        // sin proveedor asociado aún
-      }
-
-      result.push({
-        ...item,
-        balance,
-        currentTheoreticalCostGrossArs: cost,
-        referenceSupplierName: refSupplierName,
-        referencePriceNet: refPriceNet,
-        referenceCurrency: refCurrency,
-      });
-    }
+        return {
+          ...item,
+          balance,
+          currentTheoreticalCostGrossArs: cost,
+          referenceSupplierId: latestSupplierItem ? latestSupplierItem.supplierId : null,
+          referenceSupplierCode: latestSupplierItem ? latestSupplierItem.supplierCode : null,
+          referenceSupplierName: latestSupplierItem ? latestSupplierItem.supplierName : null,
+          referencePriceNet: latestSupplierItem ? latestSupplierItem.quotedUnitPriceNet : null,
+          referenceCurrency: latestSupplierItem ? (latestSupplierItem.supplierCurrency as 'ARS' | 'USD') : null,
+          referencePriceUpdatedAt: latestSupplierItem ? latestSupplierItem.priceUpdatedAt : null,
+        };
+      })
+    );
 
     return result;
   }

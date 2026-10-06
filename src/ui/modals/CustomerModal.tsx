@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, FormField, Button } from '../components/UIComponents';
+import { Modal, Button } from '../components/UIComponents';
 import { createCustomerAction, updateCustomerAction, type CustomerDTO } from '@/actions/customer.actions';
 
 interface CustomerModalProps {
@@ -31,7 +31,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   const [discount1Pct, setDiscount1Pct] = useState('0');
   const [discount2Pct, setDiscount2Pct] = useState('0');
   const [discount3Pct, setDiscount3Pct] = useState('0');
-  const [active, setActive] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +49,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       setDiscount1Pct(customer.discount1Pct || '0');
       setDiscount2Pct(customer.discount2Pct || '0');
       setDiscount3Pct(customer.discount3Pct || '0');
-      setActive(customer.active ?? true);
     } else {
       setName('');
       setDni('');
@@ -64,7 +62,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       setDiscount1Pct('0');
       setDiscount2Pct('0');
       setDiscount3Pct('0');
-      setActive(true);
     }
     setError(null);
   }, [customer, isOpen]);
@@ -101,16 +98,15 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           transportName: transportName.trim() || null,
           transportAddress: transportAddress.trim() || null,
           category: category.trim() || null,
-          discount1Pct,
-          discount2Pct,
-          discount3Pct,
-          active,
+          discount1Pct: discount1Pct.trim() || '0',
+          discount2Pct: discount2Pct.trim() || '0',
+          discount3Pct: discount3Pct.trim() || '0',
         });
 
-        if (!res.success) {
+        if (!res.success || !res.data) {
           setError(res.error || 'Error al actualizar el cliente');
         } else {
-          onSuccess?.(res.data!);
+          onSuccess?.(res.data);
           onClose();
         }
       } else {
@@ -124,20 +120,20 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           transportName: transportName.trim() || null,
           transportAddress: transportAddress.trim() || null,
           category: category.trim() || null,
-          discount1Pct,
-          discount2Pct,
-          discount3Pct,
+          discount1Pct: discount1Pct.trim() || '0',
+          discount2Pct: discount2Pct.trim() || '0',
+          discount3Pct: discount3Pct.trim() || '0',
         });
 
-        if (!res.success) {
-          setError(res.error || 'Error al crear el cliente');
+        if (!res.success || !res.data) {
+          setError(res.error || 'Error al registrar el cliente');
         } else {
-          onSuccess?.(res.data!);
+          onSuccess?.(res.data);
           onClose();
         }
       }
-    } catch {
-      setError('Error inesperado de comunicación con el servidor');
+    } catch (err: any) {
+      setError(err.message || 'Error de comunicación con el servidor');
     } finally {
       setIsSubmitting(false);
     }
@@ -145,204 +141,218 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
 
   return (
     <Modal
-      title={isEdit ? `Editar Cliente: ${customer?.code || ''}` : 'Nuevo Cliente'}
+      title={isEdit ? `EDITAR CLIENTE — ${customer?.code}` : 'NUEVO CLIENTE'}
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-[#DD0000] rounded text-xs font-semibold">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs font-semibold text-[#DD0000]">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label="Nombre / Razón Social *" className="sm:col-span-2">
-            <input
-              type="text"
-              required
-              disabled={isSubmitting}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Distribuidora Bella Cosmética"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+        {/* Formulario en 2 Columnas idéntico a NUEVO-CLIENTE.png de Figma */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-xs">
+          
+          {/* Columna Izquierda */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Codigo</label>
+              <div className="flex-1 h-9 px-3 flex items-center border border-dashed border-gray-300 rounded-md text-gray-500 bg-gray-50 font-mono">
+                {isEdit ? customer?.code : 'Automatico'}
+              </div>
+            </div>
 
-          <FormField label="DNI / CUIT">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={dni}
-              onChange={(e) => setDni(e.target.value)}
-              placeholder="Ej: 30-71234567-9"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Fecha Creacion</label>
+              <div className="flex-1 h-9 px-3 flex items-center border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                {isEdit && customer?.createdAt
+                  ? new Date(customer.createdAt).toLocaleDateString('es-AR')
+                  : new Date().toLocaleDateString('es-AR')}
+              </div>
+            </div>
 
-          <FormField label="Teléfono de Contacto">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Ej: +54 9 11 4455-6677"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Nombre</label>
+              <input
+                type="text"
+                required
+                placeholder="Nombre o Razón Social"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
 
-          <FormField label="Dirección / Domicilio">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Ej: Av. Rivadavia 1234"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Domicilio</label>
+              <input
+                type="text"
+                placeholder="Dirección comercial"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
 
-          <FormField label="Localidad">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={locality}
-              onChange={(e) => setLocality(e.target.value)}
-              placeholder="Ej: Morón"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Localidad</label>
+              <input
+                type="text"
+                placeholder="Ciudad / Localidad"
+                value={locality}
+                onChange={(e) => setLocality(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
 
-          <FormField label="Provincia">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={province}
-              onChange={(e) => setProvince(e.target.value)}
-              placeholder="Ej: Buenos Aires"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Provincia</label>
+              <input
+                type="text"
+                placeholder="Provincia"
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
 
-          <FormField label="Categoría Comercial">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="Ej: Salón Mayorista, Distribuidor"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Telefono</label>
+              <input
+                type="text"
+                placeholder="Teléfono o WhatsApp"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
 
-          <FormField label="Transporte / Expreso">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={transportName}
-              onChange={(e) => setTransportName(e.target.value)}
-              placeholder="Ej: Expreso San José"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Dni / CUIT</label>
+              <input
+                type="text"
+                placeholder="Documento o CUIT"
+                value={dni}
+                onChange={(e) => setDni(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
+          </div>
 
-          <FormField label="Dirección de Transporte">
-            <input
-              type="text"
-              disabled={isSubmitting}
-              value={transportAddress}
-              onChange={(e) => setTransportAddress(e.target.value)}
-              placeholder="Ej: Depósito Central Villa Soldati"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-medium focus:border-[#B99D22] focus:ring-1 focus:ring-[#B99D22]"
-            />
-          </FormField>
+          {/* Columna Derecha */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Transporte</label>
+              <input
+                type="text"
+                placeholder="Empresa de transporte"
+                value={transportName}
+                onChange={(e) => setTransportName(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Dir. Transporte</label>
+              <input
+                type="text"
+                placeholder="Dirección del depósito o expreso"
+                value={transportAddress}
+                onChange={(e) => setTransportAddress(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Categoria</label>
+              <input
+                type="text"
+                placeholder="Distribuidor, Salón, etc."
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="flex-1 h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Descuento 1</label>
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  value={discount1Pct}
+                  onChange={(e) => setDiscount1Pct(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+                />
+                <span className="text-gray-500 font-bold">%</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Descuento 2</label>
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  value={discount2Pct}
+                  onChange={(e) => setDiscount2Pct(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+                />
+                <span className="text-gray-500 font-bold">%</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-black w-28">Descuento 3</label>
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  value={discount3Pct}
+                  onChange={(e) => setDiscount3Pct(e.target.value)}
+                  className="w-full h-9 px-3 border border-gray-300 rounded-md text-black focus:outline-none focus:border-[#0E50A0]"
+                />
+                <span className="text-gray-500 font-bold">%</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        {/* Sección de Descuentos Comerciales Sucesivos */}
-        <div className="pt-3 border-t border-gray-200">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-2">
-            Descuentos Comerciales del Cliente (%)
-          </label>
-          <p className="text-[11px] text-gray-500 mb-3">
-            Se aplican de forma sucesiva en remitos y facturación (no se suman algebraicamente).
-          </p>
-          <div className="grid grid-cols-3 gap-3">
-            <FormField label="Descuento 1 (%)">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                disabled={isSubmitting}
-                value={discount1Pct}
-                onChange={(e) => setDiscount1Pct(e.target.value)}
-                className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-bold text-center focus:border-[#B99D22]"
-              />
-            </FormField>
-
-            <FormField label="Descuento 2 (%)">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                disabled={isSubmitting}
-                value={discount2Pct}
-                onChange={(e) => setDiscount2Pct(e.target.value)}
-                className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-bold text-center focus:border-[#B99D22]"
-              />
-            </FormField>
-
-            <FormField label="Descuento 3 (%)">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                disabled={isSubmitting}
-                value={discount3Pct}
-                onChange={(e) => setDiscount3Pct(e.target.value)}
-                className="h-[40px] px-3 border border-[#D9D9D9] rounded text-sm w-full font-bold text-center focus:border-[#B99D22]"
-              />
-            </FormField>
-          </div>
-        </div>
-
-        {isEdit && (
-          <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700">Estado de la cuenta:</span>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                disabled={isSubmitting}
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
-                className="rounded border-gray-300 text-[#B99D22] focus:ring-[#B99D22] h-4 w-4"
-              />
-              <span className={`text-xs font-bold ${active ? 'text-[#008102]' : 'text-gray-500'}`}>
-                {active ? 'Cliente Activo' : 'Cliente Inactivo'}
-              </span>
-            </label>
-          </div>
-        )}
-
-        {/* Botones de acción */}
-        <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+        {/* Botones de Acción de Figma: Cancelar (Rojo) y Registrar Cliente (Azul) */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
           <Button
             type="button"
-            variant="secundario"
-            disabled={isSubmitting}
+            variant="rojo"
             onClick={onClose}
+            disabled={isSubmitting}
+            className="w-32"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
-            variant="principal"
+            variant="azul"
             disabled={isSubmitting}
+            className="w-40"
           >
-            {isSubmitting ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Cliente'}
+            {isSubmitting
+              ? 'Guardando...'
+              : isEdit
+              ? 'Guardar cliente'
+              : 'Registrar cliente'}
           </Button>
         </div>
       </form>
