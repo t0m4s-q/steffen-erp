@@ -2,6 +2,8 @@ import 'server-only';
 import { serverSupabase } from '@/database/server';
 import { CustomerRepository } from '@/repositories/customer.repository';
 import { CustomerDomainService } from '@/services/customer.service';
+import { SupplierRepository } from '@/repositories/supplier.repository';
+import { SupplierDomainService } from '@/services/supplier.service';
 
 /**
  * Composition Root para instanciación controlada y unificada de servicios
@@ -9,6 +11,7 @@ import { CustomerDomainService } from '@/services/customer.service';
  * instanciaciones ad-hoc repetitivas en cada Server Action.
  */
 let customerServiceInstance: CustomerDomainService | null = null;
+let supplierServiceInstance: SupplierDomainService | null = null;
 
 export function getCustomerService(): CustomerDomainService {
   if (!customerServiceInstance) {
@@ -16,4 +19,12 @@ export function getCustomerService(): CustomerDomainService {
     customerServiceInstance = new CustomerDomainService(customerRepo);
   }
   return customerServiceInstance;
+}
+
+export function getSupplierService(): SupplierDomainService {
+  if (!supplierServiceInstance) {
+    const supplierRepo = new SupplierRepository(serverSupabase);
+    supplierServiceInstance = new SupplierDomainService(supplierRepo);
+  }
+  return supplierServiceInstance;
 }

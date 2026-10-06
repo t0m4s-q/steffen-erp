@@ -12,6 +12,7 @@ export interface SupplierRecord {
   phone: string | null;
   currencyCode: 'ARS' | 'USD';
   active: boolean;
+  balance: Decimal;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,7 +77,7 @@ export class SupplierRepository extends BaseSupabaseRepository {
       .from('suppliers')
       .update(updatePayload)
       .eq('id', id)
-      .select('*')
+      .select('*, financial_accounts ( id, current_balance )')
       .single();
 
     if (error || !data) {
@@ -89,7 +90,7 @@ export class SupplierRepository extends BaseSupabaseRepository {
   async findById(id: string): Promise<SupplierRecord | null> {
     const { data, error } = await this.client
       .from('suppliers')
-      .select('*')
+      .select('*, financial_accounts ( id, current_balance )')
       .eq('id', id)
       .single();
 
@@ -100,7 +101,7 @@ export class SupplierRepository extends BaseSupabaseRepository {
   async findByCode(code: string): Promise<SupplierRecord | null> {
     const { data, error } = await this.client
       .from('suppliers')
-      .select('*')
+      .select('*, financial_accounts ( id, current_balance )')
       .eq('code', code)
       .single();
 
@@ -109,7 +110,10 @@ export class SupplierRepository extends BaseSupabaseRepository {
   }
 
   async listAll(includeInactive = true): Promise<SupplierRecord[]> {
-    let query = this.client.from('suppliers').select('*').order('created_at', { ascending: false });
+    let query = this.client
+      .from('suppliers')
+      .select('*, financial_accounts ( id, current_balance )')
+      .order('created_at', { ascending: false });
 
     if (!includeInactive) {
       query = query.eq('active', true);
@@ -217,6 +221,11 @@ export class SupplierRepository extends BaseSupabaseRepository {
   }
 
   private mapToRecord(row: any): SupplierRecord {
+    const acc = Array.isArray(row.financial_accounts)
+      ? row.financial_accounts[0]
+      : row.financial_accounts;
+    const currentBalance = acc?.current_balance !== undefined ? acc.current_balance : 0;
+
     return {
       id: row.id,
       code: row.code,
@@ -226,6 +235,7 @@ export class SupplierRepository extends BaseSupabaseRepository {
       phone: row.phone,
       currencyCode: row.currency_code,
       active: row.active,
+      balance: new Decimal(currentBalance),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

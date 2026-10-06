@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUser, isUserAuthorized } from '@/auth/guard';
 import { logoutAction } from '@/actions/auth.actions';
-import { User, LogOut, ShieldCheck, Users, Home, Activity } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
+import { ErpNavDesktop, ErpNavMobile } from '@/ui/components/ErpNavigation';
 
 export default async function ErpLayout({
   children,
@@ -40,32 +41,7 @@ export default async function ErpLayout({
               </Link>
 
               {/* Barra de Navegación Principal */}
-              <nav className="hidden md:flex items-center space-x-1 pl-4 border-l border-slate-200">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                >
-                  <Home className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Inicio</span>
-                </Link>
-
-                <Link
-                  href="/clientes"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                >
-                  <Users className="w-3.5 h-3.5 text-[#B99D22]" />
-                  <span>Clientes</span>
-                </Link>
-
-                <Link
-                  href="/system-status"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                  title="Panel de verificación técnica y base de datos"
-                >
-                  <Activity className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Estado Sistema</span>
-                </Link>
-              </nav>
+              <ErpNavDesktop />
             </div>
 
             {/* Usuario, Estado y Cerrar Sesión */}
@@ -97,26 +73,7 @@ export default async function ErpLayout({
           </div>
 
           {/* Menú Móvil */}
-          <div className="md:hidden flex space-x-2 py-2 border-t border-slate-100 overflow-x-auto text-xs">
-            <Link
-              href="/"
-              className="px-3 py-1.5 rounded font-bold uppercase text-slate-700 hover:bg-slate-100"
-            >
-              Inicio
-            </Link>
-            <Link
-              href="/clientes"
-              className="px-3 py-1.5 rounded font-bold uppercase text-slate-700 hover:bg-slate-100"
-            >
-              Clientes
-            </Link>
-            <Link
-              href="/system-status"
-              className="px-3 py-1.5 rounded font-bold uppercase text-slate-500 hover:bg-slate-100"
-            >
-              Estado Sistema
-            </Link>
-          </div>
+          <ErpNavMobile />
         </div>
       </header>
 
