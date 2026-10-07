@@ -16,7 +16,7 @@ const navItems: NavItem[] = [
   { name: 'MI FABRICA', href: '/fabrica', enabled: false },
   { name: 'PEDIDOS', href: '/pedidos', enabled: false },
   { name: 'STOCK', href: '/stock', enabled: true },
-  { name: 'FORMULAS', href: '/formulas', enabled: false },
+  { name: 'FORMULAS', href: '/formulas', enabled: true },
   {
     name: 'ADMINISTRACION',
     href: '/clientes',
@@ -38,13 +38,14 @@ export const ErpNavDesktop: React.FC = () => {
       {navItems.map((item) => {
         const isDashboard = item.href === '/' && pathname === '/';
         const isStock = item.href === '/stock' && pathname.startsWith('/stock');
+        const isFormulas = item.href === '/formulas' && pathname.startsWith('/formulas');
         const isAdmin =
           item.name === 'ADMINISTRACION' &&
           (pathname.startsWith('/clientes') ||
             pathname.startsWith('/proveedores') ||
             pathname.startsWith('/system-status'));
 
-        const isActive = isDashboard || isStock || isAdmin;
+        const isActive = isDashboard || isStock || isFormulas || isAdmin;
         const slotWidthClass = 'w-[140px] xl:w-[185px]';
 
         if (!item.enabled) {
@@ -164,13 +165,14 @@ export const ErpNavMobile: React.FC = () => {
       {navItems.map((item) => {
         const isDashboard = item.href === '/' && pathname === '/';
         const isStock = item.href === '/stock' && pathname.startsWith('/stock');
+        const isFormulas = item.href === '/formulas' && pathname.startsWith('/formulas');
         const isAdmin =
           item.name === 'ADMINISTRACION' &&
           (pathname.startsWith('/clientes') ||
             pathname.startsWith('/proveedores') ||
             pathname.startsWith('/system-status'));
 
-        const isActive = isDashboard || isStock || isAdmin;
+        const isActive = isDashboard || isStock || isFormulas || isAdmin;
 
         if (!item.enabled) {
           return (

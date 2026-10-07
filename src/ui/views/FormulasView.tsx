@@ -1,477 +1,406 @@
-// Formulas View conforming to DESIGN.md Section 16.4 & BUSINESS_RULES.md Section 2
+'use client';
 
-import React, { useState } from 'react';
-import { db } from '../../services/db';
-import { domainServices } from '../../services/domainServices';
-import { Button, Modal, FormField } from '../components/UIComponents';
-import { PlusCircle, Edit3, History, Check } from 'lucide-react';
-import { UUID } from '../../types/domain';
+import React, { useState, useTransition } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, Search, Plus, Edit3, History, Power } from 'lucide-react';
+import type { BaseProductDTO, ActiveRawMaterialDTO } from '@/actions/formula.dto';
+import { toggleBaseProductActiveAction } from '@/actions/formula.actions';
+import { NewFormulaModal } from '../modals/NewFormulaModal';
+import { NewFormulaVersionModal } from '../modals/NewFormulaVersionModal';
+import { FormulaHistoryModal } from '../modals/FormulaHistoryModal';
+import { ConfirmDialog } from '../components/UIComponents';
 
-export const FormulasView: React.FC = () => {
-  const state = db.getState();
-  const baseProducts = Object.values(state.baseProducts).filter((p) => p.active);
-  const [selectedPbaId, setSelectedPbaId] = useState<UUID>(baseProducts[0]?.id || '');
+interface FormulasViewProps {
+  initialBaseProducts?: BaseProductDTO[];
+  activeRawMaterials?: ActiveRawMaterialDTO[];
+}
 
-  const selectedBaseProduct = state.baseProducts[selectedPbaId];
-  const formulaCostInfo = selectedPbaId ? domainServices.getCurrentFormulaCost(selectedPbaId) : null;
+export const FormulasView: React.FC<FormulasViewProps> = ({
+  initialBaseProducts = [],
+  activeRawMaterials = [],
+}) => {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-  // Versions history
-  const versions = Object.values(state.formulaVersions)
-    .filter((fv) => fv.base_product_id === selectedPbaId)
-    .sort((a, b) => b.version_number - a.version_number);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
+  const [selectedPbaId, setSelectedPbaId] = useState<string>(
+    initialBaseProducts[0]?.id || ''
+  );
 
-  // New Formula / PBA Modal
-  const [newFormulaModalOpen, setNewFormulaModalOpen] = useState(false);
-  const [newPbaName, setNewPbaName] = useState('');
-  const [newObservations, setNewObservations] = useState('');
-  const rawMaterials = Object.values(state.stockItems).filter((it) => it.item_type === 'MPR' && it.active);
+  // Modales
+  const [isNewFormulaModalOpen, setIsNewFormulaModalOpen] = useState(false);
+  const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
+  const [editingBaseProduct, setEditingBaseProduct] = useState<BaseProductDTO | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-  const [newRecipeRows, setNewRecipeRows] = useState<Array<{ rawMaterialId: UUID; quantityKg: number }>>([
-    { rawMaterialId: rawMaterials[0]?.id || '', quantityKg: 50 },
-  ]);
-  const [modalError, setModalError] = useState('');
-
-  // Edit Formula Modal (New Version)
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editRecipeRows, setEditRecipeRows] = useState<Array<{ rawMaterialId: UUID; quantityKg: number }>>([]);
-  const [editObservations, setEditObservations] = useState('');
-
-  const openEditFormula = () => {
-    if (!formulaCostInfo) return;
-    const initialRows = formulaCostInfo.items.map((i) => ({
-      rawMaterialId: i.rawMaterialId,
-      quantityKg: i.quantityKg,
-    }));
-    setEditRecipeRows(initialRows);
-    setEditObservations(`Revisión de fórmula ${new Date().toLocaleDateString('es-AR')}`);
-    setEditModalOpen(true);
+  const handleOpenEditVersion = (pba: BaseProductDTO) => {
+    setEditingBaseProduct(pba);
+    setIsNewVersionModalOpen(true);
   };
 
-  const handleSaveNewFormula = () => {
-    setModalError('');
-    if (!newPbaName.trim()) {
-      setModalError('El nombre del Producto Base es obligatorio');
-      return;
-    }
-    // Verify no duplicates
-    const ids = new Set(newRecipeRows.map((r) => r.rawMaterialId));
-    if (ids.size !== newRecipeRows.length) {
-      setModalError('No puede repetirse la misma Materia Prima en varias filas de la fórmula');
-      return;
-    }
+  const handleCloseEditVersion = () => {
+    setIsNewVersionModalOpen(false);
+    setEditingBaseProduct(null);
+  };
 
-    try {
-      db.transaction((st) => {
-        const now = new Date().toISOString();
-        const pbaCode = db.nextCode('PBA');
-        const pbaId = db.generateUUID();
+  // Diálogo para cambiar estado activo
+  const [confirmTogglePba, setConfirmTogglePba] = useState<BaseProductDTO | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-        st.baseProducts[pbaId] = {
-          id: pbaId,
-          code: pbaCode,
-          name: newPbaName,
-          active: true,
-          created_date: now.slice(0, 10),
-          created_at: now,
-          updated_at: now,
-        };
+  // Filtrado de PBAs en memoria (lado cliente)
+  const filteredBaseProducts = initialBaseProducts.filter((bp) => {
+    if (!showInactive && !bp.active) return false;
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return bp.name.toLowerCase().includes(term) || bp.code.toLowerCase().includes(term);
+  });
 
-        const fvId = db.generateUUID();
-        st.formulaVersions[fvId] = {
-          id: fvId,
-          base_product_id: pbaId,
-          version_number: 1,
-          business_date: now.slice(0, 10),
-          observations: newObservations,
-          is_current: true,
-          created_at: now,
-        };
+  // PBA actualmente seleccionado
+  const selectedPba =
+    initialBaseProducts.find((bp) => bp.id === selectedPbaId) ||
+    filteredBaseProducts[0] ||
+    null;
 
-        newRecipeRows.forEach((r, idx) => {
-          if (r.quantityKg <= 0) throw new Error('Las cantidades en kg deben ser mayores a 0');
-          const fviId = db.generateUUID();
-          st.formulaVersionItems[fviId] = {
-            id: fviId,
-            formula_version_id: fvId,
-            raw_material_id: r.rawMaterialId,
-            quantity_kg: r.quantityKg,
-            sort_order: idx + 1,
-          };
-        });
+  const formatArs = (str: string | null | undefined) => {
+    if (!str) return '$ 0';
+    const num = parseFloat(str);
+    if (isNaN(num)) return '$ 0';
+    return `$ ${Math.round(num).toLocaleString('es-AR')}`;
+  };
 
-        setSelectedPbaId(pbaId);
-      });
-      setNewFormulaModalOpen(false);
-      setNewPbaName('');
-    } catch (err: any) {
-      setModalError(err.message || 'Error al guardar fórmula');
+  const formatKg = (str: string | null | undefined) => {
+    if (!str) return '0 kg';
+    const num = parseFloat(str);
+    if (isNaN(num)) return '0 kg';
+    return `${num.toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg`;
+  };
+
+  const handleToggleActiveClick = (pba: BaseProductDTO) => {
+    if (pba.active) {
+      setConfirmTogglePba(pba);
+    } else {
+      executeToggleActive(pba, true);
     }
   };
 
-  const handleSaveEditVersion = () => {
-    setModalError('');
-    // Verify no duplicates
-    const ids = new Set(editRecipeRows.map((r) => r.rawMaterialId));
-    if (ids.size !== editRecipeRows.length) {
-      setModalError('No puede repetirse la misma Materia Prima en varias filas de la fórmula');
-      return;
-    }
-
-    try {
-      db.transaction((st) => {
-        const now = new Date().toISOString();
-        // Deactivate previous active version for this PBA
-        Object.values(st.formulaVersions).forEach((v) => {
-          if (v.base_product_id === selectedPbaId && v.is_current) {
-            v.is_current = false;
-          }
-        });
-
-        const nextVerNum = (versions[0]?.version_number || 1) + 1;
-        const newFvId = db.generateUUID();
-        st.formulaVersions[newFvId] = {
-          id: newFvId,
-          base_product_id: selectedPbaId,
-          version_number: nextVerNum,
-          business_date: now.slice(0, 10),
-          observations: editObservations,
-          is_current: true,
-          created_at: now,
-        };
-
-        editRecipeRows.forEach((r, idx) => {
-          if (r.quantityKg <= 0) throw new Error('Las cantidades en kg deben ser mayores a 0');
-          const fviId = db.generateUUID();
-          st.formulaVersionItems[fviId] = {
-            id: fviId,
-            formula_version_id: newFvId,
-            raw_material_id: r.rawMaterialId,
-            quantity_kg: r.quantityKg,
-            sort_order: idx + 1,
-          };
-        });
-      });
-      setEditModalOpen(false);
-    } catch (err: any) {
-      setModalError(err.message || 'Error al actualizar versión');
-    }
+  const executeToggleActive = async (pba: BaseProductDTO, targetActive: boolean) => {
+    setActionError(null);
+    startTransition(async () => {
+      const res = await toggleBaseProductActiveAction(pba.id, targetActive);
+      if (!res.success) {
+        setActionError(res.error || 'Error al cambiar estado del Producto Base.');
+      } else {
+        router.refresh();
+      }
+      setConfirmTogglePba(null);
+    });
   };
 
   return (
     <div className="space-y-6">
-      {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-lg border border-[#D9D9D9]">
-        <div>
-          <h1 className="text-2xl font-bold text-[#000000]">Fórmulas de Productos Base</h1>
-          <p className="text-xs text-gray-500">
-            Composición química oficial por lote de Producto Base (PBA). Control de versiones y costos teóricos.
-          </p>
+      {/* Barra Superior según Figma: FORMULAS.png */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/stock"
+            className="inline-flex items-center gap-1 text-xs font-bold text-black hover:text-[#D2AB68] transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Volver
+          </Link>
+          <h1 className="text-xl font-bold tracking-tight text-black uppercase">
+            FORMULAS
+          </h1>
         </div>
-        <Button variant="principal" onClick={() => setNewFormulaModalOpen(true)} className="flex items-center gap-2">
-          <PlusCircle className="w-4 h-4" /> Nueva Fórmula / PBA
-        </Button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsNewFormulaModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0E50A0] text-white hover:bg-blue-800 text-xs font-bold uppercase rounded-[2px] transition-colors cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            NUEVA FORMULA
+          </button>
+        </div>
       </div>
 
-      {/* Main Grid: Selector & Formula Detail */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* PBA Selector List */}
-        <div className="bg-white p-4 rounded-lg border border-[#D9D9D9] shadow-xs space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Productos Base (PBA)</h2>
-          <div className="space-y-1">
-            {baseProducts.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedPbaId(p.id)}
-                className={`w-full text-left p-3 rounded text-xs font-semibold flex items-center justify-between border transition-colors cursor-pointer ${
-                  selectedPbaId === p.id
-                    ? 'bg-[#B99D22] text-white border-[#B99D22]'
-                    : 'bg-gray-50 text-[#393939] border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div>
-                  <p className="font-bold">{p.name}</p>
-                  <span className={`text-[10px] ${selectedPbaId === p.id ? 'text-amber-100' : 'text-gray-400'}`}>
-                    {p.code}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
+      {actionError && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-[2px]">
+          {actionError}
         </div>
+      )}
 
-        {/* Current Formula Detail */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white p-5 rounded-lg border border-[#D9D9D9] shadow-xs space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-[#D9D9D9]">
-              <div>
-                <h2 className="text-lg font-bold text-[#000000]">{selectedBaseProduct?.name}</h2>
-                <span className="text-xs font-bold text-[#B99D22]">{selectedBaseProduct?.code}</span>
-                <span className="text-xs text-gray-500 ml-2">
-                  (Versión Vigente: v{versions.find((v) => v.is_current)?.version_number || 1})
-                </span>
+      {/* Contenedor Principal según Figma: FORMULAS.png */}
+      <div className="bg-white rounded-[4px] border border-[#D9D9D9] p-6 shadow-xs min-h-[560px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Panel Izquierdo: Lista de Productos Base (Columna 1 a 4) */}
+          <div className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-[#D9D9D9] pb-6 lg:pb-0 lg:pr-6 flex flex-col">
+            {/* Buscador de Productos Base */}
+            <div className="mb-4 space-y-2">
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar Producto Base o código..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-[#D9D9D9] text-xs rounded-[2px] focus:outline-none focus:border-[#0E50A0]"
+                />
               </div>
-              <Button variant="secundario" onClick={openEditFormula} className="flex items-center gap-1.5 text-xs">
-                <Edit3 className="w-3.5 h-3.5" /> Editar Fórmula (Nueva Versión)
-              </Button>
+
+              <div className="flex items-center justify-between text-[11px] text-gray-500 px-1">
+                <span>{filteredBaseProducts.length} productos base</span>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showInactive}
+                    onChange={(e) => setShowInactive(e.target.checked)}
+                    className="rounded border-[#D9D9D9] text-[#0E50A0] focus:ring-0"
+                  />
+                  <span>Mostrar inactivos</span>
+                </label>
+              </div>
             </div>
 
-            {/* Formula Items Table */}
-            {formulaCostInfo && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-100 text-[#000] border-b border-[#D9D9D9] text-left">
-                      <th className="py-2.5 px-3">CÓDIGO MPR</th>
-                      <th className="py-2.5 px-3">MATERIA PRIMA</th>
-                      <th className="py-2.5 px-3 text-right">CANTIDAD (KG)</th>
-                      <th className="py-2.5 px-3 text-right">COSTO BRUTO / KG</th>
-                      <th className="py-2.5 px-3 text-right">COSTO FINAL FILA</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {formulaCostInfo.items.map((it) => (
-                      <tr key={it.rawMaterialId} className="hover:bg-gray-50">
-                        <td className="py-2.5 px-3 font-bold text-gray-700">{it.rawMaterialCode}</td>
-                        <td className="py-2.5 px-3 font-semibold text-[#393939]">{it.rawMaterialName}</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-gray-900">{it.quantityKg.toFixed(3)} kg</td>
-                        <td className="py-2.5 px-3 text-right text-gray-600">$ {it.unitCostGrossArs.toFixed(2)}</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-[#000]">
-                          $ {Math.round(it.lineCostArs).toLocaleString('es-AR')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Totals Box */}
-            {formulaCostInfo && (
-              <div className="p-4 bg-gray-50 border border-[#D9D9D9] rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div>
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Total Kg Granel</span>
-                  <p className="text-lg font-bold text-[#000000]">{formulaCostInfo.totalKg.toFixed(3)} kg</p>
+            {/* Listado de PBAs */}
+            <div className="space-y-1 overflow-y-auto max-h-[500px] pr-1 flex-1">
+              {filteredBaseProducts.length === 0 ? (
+                <div className="py-12 text-center text-xs text-gray-400 font-medium">
+                  No se encontraron productos base.
                 </div>
-                <div>
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Costo Granel Total</span>
-                  <p className="text-lg font-bold text-[#000000]">
-                    $ {Math.round(formulaCostInfo.totalCostArs).toLocaleString('es-AR')}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Costo Producto Base / Kg</span>
-                  <p className="text-xl font-bold text-[#B99D22]">$ {formulaCostInfo.costPerKgArs.toFixed(2)}</p>
-                </div>
-              </div>
-            )}
+              ) : (
+                filteredBaseProducts.map((bp) => {
+                  const isSelected = selectedPba?.id === bp.id;
+                  return (
+                    <button
+                      key={bp.id}
+                      onClick={() => setSelectedPbaId(bp.id)}
+                      className={`w-full text-left py-2.5 px-3 flex items-center justify-between transition-colors cursor-pointer rounded-[4px] group ${
+                        isSelected
+                          ? 'border-2 border-[#0E50A0] text-[#0E50A0] bg-[#0E50A0]/5 font-bold shadow-xs'
+                          : 'border border-transparent text-[#1B1B1B] hover:bg-gray-100 font-medium'
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-xs tracking-tight">{bp.name}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          {bp.code} {bp.currentVersion ? `• v${bp.currentVersion}` : ''}
+                          {!bp.active ? ' (Inactivo)' : ''}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-xs ml-2 ${
+                          isSelected ? 'text-[#0E50A0]' : 'text-[#0E50A0] opacity-80 group-hover:opacity-100'
+                        }`}
+                      >
+                        ▶
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
 
-          {/* Version History Table */}
-          <div className="bg-white p-5 rounded-lg border border-[#D9D9D9] shadow-xs">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 mb-3 flex items-center gap-2">
-              <History className="w-4 h-4 text-gray-500" /> Historial de Versiones de Fórmula
-            </h3>
-            <div className="divide-y divide-gray-100 text-xs">
-              {versions.map((v) => (
-                <div key={v.id} className="py-2.5 flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-sm">Versión {v.version_number}</span>
-                    {v.is_current && (
-                      <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-[#008102]">
-                        VIGENTE
+          {/* Panel Derecho: Ficha y Composición de Fórmula Vigente (Columna 5 a 12) */}
+          <div className="lg:col-span-8 flex flex-col justify-between">
+            {selectedPba ? (
+              <div className="space-y-6">
+                {/* Cabecera del Producto Base según Figma: FORMULAS.png */}
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#D9D9D9]">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-bold text-xs uppercase text-black tracking-wider">
+                      PRODUCTO BASE
+                    </span>
+                    <span className="font-bold text-base text-black">
+                      {selectedPba.name}
+                    </span>
+                    {selectedPba.currentVersion && (
+                      <span className="ml-2 px-2 py-0.5 bg-blue-50 text-[#0E50A0] border border-blue-200 text-[10px] font-bold uppercase rounded-[2px]">
+                        v{selectedPba.currentVersion} Vigente
                       </span>
                     )}
-                    <p className="text-gray-500">{v.observations || 'Sin observaciones'}</p>
+                    {!selectedPba.active && (
+                      <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded-[2px]">
+                        Inactivo
+                      </span>
+                    )}
                   </div>
-                  <span className="text-gray-400">{new Date(v.created_at).toLocaleDateString('es-AR')}</span>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-bold text-xs uppercase text-black tracking-wider">
+                        CODIGO
+                      </span>
+                      <span className="font-mono font-bold text-xs text-black">
+                        {selectedPba.code}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => handleToggleActiveClick(selectedPba)}
+                      title={selectedPba.active ? 'Desactivar Producto Base' : 'Activar Producto Base'}
+                      className={`p-1.5 rounded hover:bg-black/5 transition-colors cursor-pointer ${
+                        selectedPba.active ? 'text-gray-400 hover:text-red-600' : 'text-[#008102]'
+                      }`}
+                    >
+                      <Power className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => setIsHistoryModalOpen(true)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold uppercase text-[#0E50A0] border border-[#0E50A0] hover:bg-blue-50 rounded-[2px] transition-colors cursor-pointer"
+                      title="Ver versiones anteriores de esta fórmula"
+                    >
+                      <History className="w-3.5 h-3.5" />
+                      Historial
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Tabla de Componentes de la Fórmula según Figma: FORMULAS.png */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-[#D9D9D9] text-black font-bold uppercase text-left">
+                        <th className="py-2.5 px-3 w-28">CODIGO</th>
+                        <th className="py-2.5 px-3">MATERIA PRIMA</th>
+                        <th className="py-2.5 px-3 text-right w-36">CANTIDAD (KG)</th>
+                        <th className="py-2.5 px-3 text-right w-36">COSTO POR KILO</th>
+                        <th className="py-2.5 px-3 text-right w-36">COSTO FINAL</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {selectedPba.currentFormulaBreakdown?.lines &&
+                      selectedPba.currentFormulaBreakdown.lines.length > 0 ? (
+                        selectedPba.currentFormulaBreakdown.lines.map((line, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/50">
+                            <td className="py-3 px-3 font-mono font-bold text-black">
+                              {line.rawMaterialCode}
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-black">
+                              {line.rawMaterialName}
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono text-black">
+                              {formatKg(line.quantityKg)}
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono text-gray-700">
+                              {formatArs(line.currentUnitCost)}
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono font-bold text-black">
+                              {formatArs(line.partialCost)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-10 text-center text-gray-400 font-medium">
+                            No se registran renglones en la fórmula vigente.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Fila de Totales según Figma: FORMULAS.png */}
+                {selectedPba.currentFormulaBreakdown && (
+                  <div className="pt-4 border-t border-[#D9D9D9] grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span className="text-black font-medium">Total Kg Granel:</span>
+                      <span className="font-mono font-bold text-black">
+                        {formatKg(selectedPba.currentFormulaBreakdown.totalKgBulk)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-black font-medium">Costo Granel:</span>
+                      <span className="font-mono font-bold text-black">
+                        {formatArs(selectedPba.currentFormulaBreakdown.totalCostBulkArs)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-black font-medium">Costo producto por kg:</span>
+                      <span className="font-mono font-bold text-[#0E50A0]">
+                        {formatArs(selectedPba.currentFormulaBreakdown.costPerKgPbaArs)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botón inferior derecho: Editar Formula según Figma: FORMULAS.png */}
+                <div className="pt-6 flex justify-end">
+                  <button
+                    onClick={() => handleOpenEditVersion(selectedPba)}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0E50A0] text-white hover:bg-blue-800 text-xs font-bold uppercase rounded-[2px] transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Editar Formula
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="py-24 text-center text-gray-400 text-xs">
+                Seleccione un Producto Base de la lista para consultar su fórmula.
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Modal: New Formula / PBA */}
-      <Modal title="Crear Nueva Fórmula y Producto Base" isOpen={newFormulaModalOpen} onClose={() => setNewFormulaModalOpen(false)}>
-        <div className="space-y-4">
-          {modalError && <div className="p-3 bg-red-100 text-[#DD0000] rounded text-sm font-semibold">{modalError}</div>}
+      {/* Modal Nueva Formula (Alta PBA + v1) */}
+      <NewFormulaModal
+        isOpen={isNewFormulaModalOpen}
+        activeRawMaterials={activeRawMaterials}
+        onClose={() => setIsNewFormulaModalOpen(false)}
+        onSuccess={(created) => {
+          setSelectedPbaId(created.id);
+          startTransition(() => {
+            router.refresh();
+          });
+        }}
+      />
 
-          <FormField label="Nombre del Nuevo Producto Base (PBA)">
-            <input
-              type="text"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded w-full font-bold"
-              placeholder="Ej: Acondicionador Argán Intenso"
-              value={newPbaName}
-              onChange={(e) => setNewPbaName(e.target.value)}
-            />
-          </FormField>
+      {/* Modal Editar Formula (Nueva Versión) */}
+      {isNewVersionModalOpen && editingBaseProduct && (
+        <NewFormulaVersionModal
+          key={editingBaseProduct.id}
+          isOpen={isNewVersionModalOpen}
+          baseProduct={editingBaseProduct}
+          activeRawMaterials={activeRawMaterials}
+          onClose={handleCloseEditVersion}
+          onSuccess={() => {
+            handleCloseEditVersion();
+            startTransition(() => {
+              router.refresh();
+            });
+          }}
+        />
+      )}
 
-          <FormField label="Observaciones">
-            <input
-              type="text"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded w-full"
-              placeholder="Ej: Fórmula inicial de laboratorio"
-              value={newObservations}
-              onChange={(e) => setNewObservations(e.target.value)}
-            />
-          </FormField>
+      {/* Modal Historial de Versiones */}
+      {isHistoryModalOpen && selectedPba && (
+        <FormulaHistoryModal
+          key={selectedPba.id}
+          isOpen={isHistoryModalOpen}
+          baseProduct={selectedPba}
+          onClose={() => setIsHistoryModalOpen(false)}
+        />
+      )}
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold uppercase">Materias Primas (kg)</h3>
-              <button
-                type="button"
-                onClick={() =>
-                  setNewRecipeRows([...newRecipeRows, { rawMaterialId: rawMaterials[0]?.id || '', quantityKg: 10 }])
-                }
-                className="text-xs font-bold text-[#B99D22] hover:underline"
-              >
-                + Agregar Materia Prima
-              </button>
-            </div>
-
-            {newRecipeRows.map((r, idx) => (
-              <div key={idx} className="flex gap-2 items-center">
-                <select
-                  className="h-9 px-2 border border-[#D9D9D9] rounded flex-1 bg-white text-xs"
-                  value={r.rawMaterialId}
-                  onChange={(e) => {
-                    const copy = [...newRecipeRows];
-                    copy[idx].rawMaterialId = e.target.value;
-                    setNewRecipeRows(copy);
-                  }}
-                >
-                  {rawMaterials.map((rm) => (
-                    <option key={rm.id} value={rm.id}>
-                      {rm.name} ({rm.code})
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0.001"
-                  className="w-28 h-9 px-2 border border-[#D9D9D9] rounded text-xs font-bold"
-                  value={r.quantityKg}
-                  onChange={(e) => {
-                    const copy = [...newRecipeRows];
-                    copy[idx].quantityKg = parseFloat(e.target.value) || 0;
-                    setNewRecipeRows(copy);
-                  }}
-                />
-                <span className="text-xs text-gray-500 font-semibold">kg</span>
-
-                {newRecipeRows.length > 1 && (
-                  <button
-                    onClick={() => setNewRecipeRows(newRecipeRows.filter((_, i) => i !== idx))}
-                    className="text-red-500 font-bold px-1"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-3 border-t border-[#D9D9D9]">
-            <Button variant="secundario" onClick={() => setNewFormulaModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="principal" onClick={handleSaveNewFormula}>
-              Guardar Fórmula y Crear PBA
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal: Edit Formula (New Version) */}
-      <Modal title={`Editar Fórmula — ${selectedBaseProduct?.name}`} isOpen={editModalOpen} onClose={() => setEditModalOpen(false)}>
-        <div className="space-y-4">
-          {modalError && <div className="p-3 bg-red-100 text-[#DD0000] rounded text-sm font-semibold">{modalError}</div>}
-
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded text-xs text-blue-900">
-            <strong>Regla de negocio:</strong> Modificar una fórmula conserva el mismo código PBA e incrementa el número
-            de versión. Los lotes de granel y ventas fabricadas con versiones anteriores permanecen inmutables.
-          </div>
-
-          <FormField label="Motivo / Observaciones de la nueva versión">
-            <input
-              type="text"
-              className="h-[40px] px-3 border border-[#D9D9D9] rounded w-full"
-              value={editObservations}
-              onChange={(e) => setEditObservations(e.target.value)}
-            />
-          </FormField>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold uppercase">Materias Primas (kg)</h3>
-              <button
-                type="button"
-                onClick={() =>
-                  setEditRecipeRows([...editRecipeRows, { rawMaterialId: rawMaterials[0]?.id || '', quantityKg: 10 }])
-                }
-                className="text-xs font-bold text-[#B99D22] hover:underline"
-              >
-                + Agregar Materia Prima
-              </button>
-            </div>
-
-            {editRecipeRows.map((r, idx) => (
-              <div key={idx} className="flex gap-2 items-center">
-                <select
-                  className="h-9 px-2 border border-[#D9D9D9] rounded flex-1 bg-white text-xs"
-                  value={r.rawMaterialId}
-                  onChange={(e) => {
-                    const copy = [...editRecipeRows];
-                    copy[idx].rawMaterialId = e.target.value;
-                    setEditRecipeRows(copy);
-                  }}
-                >
-                  {rawMaterials.map((rm) => (
-                    <option key={rm.id} value={rm.id}>
-                      {rm.name} ({rm.code})
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0.001"
-                  className="w-28 h-9 px-2 border border-[#D9D9D9] rounded text-xs font-bold"
-                  value={r.quantityKg}
-                  onChange={(e) => {
-                    const copy = [...editRecipeRows];
-                    copy[idx].quantityKg = parseFloat(e.target.value) || 0;
-                    setEditRecipeRows(copy);
-                  }}
-                />
-                <span className="text-xs text-gray-500 font-semibold">kg</span>
-
-                {editRecipeRows.length > 1 && (
-                  <button
-                    onClick={() => setEditRecipeRows(editRecipeRows.filter((_, i) => i !== idx))}
-                    className="text-red-500 font-bold px-1"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-3 border-t border-[#D9D9D9]">
-            <Button variant="secundario" onClick={() => setEditModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="principal" onClick={handleSaveEditVersion}>
-              Guardar Nueva Versión
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* ConfirmDialog Desactivación PBA */}
+      {confirmTogglePba && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Desactivar Producto Base"
+          message={`¿Estás seguro de que deseas desactivar el Producto Base "${confirmTogglePba.name}" (${confirmTogglePba.code})? Ya no se podrán crear nuevas versiones de fórmula ni asignarlo a nuevos productos.`}
+          onConfirm={() => executeToggleActive(confirmTogglePba, false)}
+          onCancel={() => setConfirmTogglePba(null)}
+        />
+      )}
     </div>
   );
 };

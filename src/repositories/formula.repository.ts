@@ -255,9 +255,12 @@ export class FormulaRepository extends BaseSupabaseRepository implements IFormul
         raw_material_id,
         quantity_kg,
         sort_order,
-        stock_items:raw_material_id (
-          code,
-          name
+        raw_materials:raw_material_id (
+          stock_item_id,
+          stock_items (
+            code,
+            name
+          )
         )
       `)
       .eq('formula_version_id', versionId)
@@ -270,8 +273,8 @@ export class FormulaRepository extends BaseSupabaseRepository implements IFormul
     const items: FormulaVersionItemRecord[] = (itemsData || []).map((row: any) => ({
       id: row.id,
       rawMaterialId: row.raw_material_id,
-      rawMaterialCode: row.stock_items?.code || '',
-      rawMaterialName: row.stock_items?.name || '',
+      rawMaterialCode: row.raw_materials?.stock_items?.code || '',
+      rawMaterialName: row.raw_materials?.stock_items?.name || '',
       quantityKg: new Decimal(row.quantity_kg),
       sortOrder: row.sort_order,
     }));
