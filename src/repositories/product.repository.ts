@@ -74,6 +74,7 @@ export interface IProductRepository {
   updateProduct(productId: string, input: UpdateProductInput): Promise<ProductDetailsRecord>;
   listProducts(includeInactive?: boolean): Promise<ProductDetailsRecord[]>;
   setProductActive(productId: string, active: boolean): Promise<ProductDetailsRecord>;
+  getBatchProductCosts(): Promise<Map<string, Decimal>>;
 }
 
 export class ProductRepository extends BaseSupabaseRepository implements IProductRepository {
@@ -324,4 +325,27 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
   async setProductActive(productId: string, active: boolean): Promise<ProductDetailsRecord> {
     return this.updateProduct(productId, { active });
   }
+
+  async getBatchProductCosts(): Promise<Map<string, Decimal>> {
+    const { data, error } = await this.client
+      .from('v_current_product_cost')
+      .select('product_id, total_product_cost_ars');
+
+    if (error) {
+      throw new DomainError(`Error consultando costos consolidados de productos: ${error.message}`);
+    }
+
+    const rows = parseJsonArray(data);
+    const costMap = new Map<string, Decimal>();
+    for (const r of rows) {
+      const row = parseJsonObject(r);
+      const productId = String(row.product_id || '');
+      const rawCost = row.total_product_cost_ars;
+      if (productId && rawCost !== null && rawCost !== undefined) {
+        costMap.set(productId, new Decimal(String(rawCost)));
+      }
+    }
+    return costMap;
+  }
 }
+

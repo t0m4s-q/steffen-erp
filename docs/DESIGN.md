@@ -689,19 +689,35 @@ Las reglas completas están en `COMPONENTS.md`.
 
 # 9. Navegación principal
 
-La navegación principal vigente del MVP es:
+La navegación principal superior vigente del ERP contiene exclusivamente los siguientes 5 módulos principales definidos en Figma:
 
-- Dashboard
-- Mi Fábrica
-- Pedidos
-- Stock
-- Fórmulas
-- Administración
-- Reportes
+- DASHBOARD (`/`)
+- MI FÁBRICA (`/fabrica`)
+- PEDIDOS (`/pedidos`)
+- STOCK (`/stock`)
+- ADMINISTRACIÓN (`/administracion`)
 
-`FÓRMULAS` se conserva como pestaña principal, tal como está planteado en la referencia visual.
+### Reglas jerárquicas estrictas:
 
-Mi Fábrica puede incluir accesos/resúmenes de Fórmulas, pero esos accesos deben llevar a la misma funcionalidad y no crear una implementación duplicada.
+1. **FÓRMULAS NO es un ítem de la barra de navegación superior**:
+   - Pertenece jerárquicamente a **Mi Fábrica**.
+   - Dentro de `/fabrica`, el bloque "FORMULAS GRANEL" provee los accesos:
+     - *Nueva fórmula* $\rightarrow$ abre el modal de alta reutilizando `/formulas?action=new` sin duplicar `NewFormulaModal`.
+     - *Ver todas >* $\rightarrow$ navega a la página secundaria completa `/formulas`.
+   - Cuando el usuario se encuentra en `/formulas`, la pestaña superior **MI FÁBRICA** permanece resaltada como activa.
+
+2. **ADMINISTRACIÓN es una página completa directa, NO un menú desplegable (dropdown)**:
+   - Al hacer click en `ADMINISTRACIÓN`, navega directamente a `/administracion`.
+   - No contiene menús flotantes ni subítems en el navbar.
+   - Las páginas secundarias `/clientes`, `/proveedores` y `/precios` continúan existiendo de forma completa pero se acceden desde los módulos y enlaces internos de `/administracion` (ej. *IR A CLIENTES >*, *IR A PROVEEDORES >*, *LISTA DE PRECIOS*).
+   - El acceso a `/system-status` se mantiene como enlace secundario discreto de auditoría al pie de `/administracion`.
+   - Cuando el usuario navega a cualquiera de estas páginas secundarias (`/clientes`, `/proveedores`, `/precios`, `/system-status`), la pestaña superior **ADMINISTRACIÓN** permanece resaltada como activa.
+
+3. **Productos desde Mi Fábrica**:
+   - En `/fabrica`, el botón *Nuevo Producto* enlaza canónicamente a `/stock?tab=productos&action=new` abriendo directamente el modal de alta de PRO.
+   - El enlace *Ver todos >* navega canónicamente a `/stock?tab=productos`.
+   - Cuando el usuario se encuentra en `/stock`, la pestaña superior **STOCK** permanece resaltada como activa.
+
 
 ---
 

@@ -1,4 +1,9 @@
-import { IPatrimonyRepository, PatrimonyRepository } from '@/repositories/patrimony.repository';
+import {
+  IPatrimonyRepository,
+  PatrimonyRepository,
+  FinancialAccountRecord,
+  PatrimonialMovementRecord,
+} from '@/repositories/patrimony.repository';
 import type { PatrimonialMovementType } from '@/database/domain-types';
 import { DomainError } from '@/domain/errors';
 import { Decimal } from '@/domain/decimal';
@@ -23,11 +28,21 @@ export interface PatrimonialMovementResult {
 
 export interface IPatrimonyDomainService {
   getFinancialAccountBalance(accountId: string): Promise<Decimal>;
+  listAccounts(): Promise<FinancialAccountRecord[]>;
+  listRecentMovements(limit?: number): Promise<PatrimonialMovementRecord[]>;
   postPatrimonialMovement(params: PostPatrimonialMovementParams): Promise<PatrimonialMovementResult>;
 }
 
 export class PatrimonyDomainService implements IPatrimonyDomainService {
   constructor(private readonly patrimonyRepo: IPatrimonyRepository = new PatrimonyRepository()) {}
+
+  async listAccounts(): Promise<FinancialAccountRecord[]> {
+    return this.patrimonyRepo.listAccounts();
+  }
+
+  async listRecentMovements(limit = 10): Promise<PatrimonialMovementRecord[]> {
+    return this.patrimonyRepo.listRecentMovements(limit);
+  }
 
   /**
    * Consulta el saldo actual de una cuenta financiera como Decimal exacto.

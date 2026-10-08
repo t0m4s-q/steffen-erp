@@ -16,12 +16,17 @@ export const metadata = {
   description: 'Gestión de formulaciones químicas, versiones históricas y costos teóricos por kg.',
 };
 
-export default async function FormulasPage() {
+export default async function FormulasPage(props: {
+  searchParams?: Promise<{ action?: string }>;
+}) {
   // 1. Guard obligatorio de servidor: valida sesión activa del usuario
   const user = await getAuthenticatedUser();
   if (!user || !isUserAuthorized(user)) {
     redirect('/login');
   }
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const defaultAction = searchParams.action;
 
   // 2. Consulta en paralelo de PBAs con fórmula vigente y MPRs activas
   const formulaService = getFormulaService();
@@ -52,6 +57,7 @@ export default async function FormulasPage() {
     <FormulasView
       initialBaseProducts={initialBaseProducts}
       activeRawMaterials={activeRawMaterials}
+      defaultAction={defaultAction}
     />
   );
 }

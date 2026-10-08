@@ -107,7 +107,7 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({
       )}
 
       {/* Contenedor Interior de Tabla idéntico a Figma */}
-      <div className="rounded-xl border border-[#D9D9D9] p-5 mt-5">
+      <div className="rounded-[5px] border border-[#D9D9D9] p-5 mt-5">
         
         {/* Encabezado: Título a la izquierda, Buscador y Filtros a la derecha */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-black pb-2 mb-4">
@@ -164,12 +164,12 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-black text-black font-bold text-left uppercase">
-                  <th className="py-2.5 px-3">CODIGO</th>
-                  <th className="py-2.5 px-3">PROVEEDOR</th>
-                  <th className="py-2.5 px-3">COMPONENTE</th>
-                  <th className="py-2.5 px-3">ULTIMA COMPRA</th>
-                  <th className="py-2.5 px-3">ULTIMA ACT PRECIO</th>
+                <tr className="bg-[#D9D9D9] text-black font-bold uppercase text-[11px]">
+                  <th className="py-2.5 px-3 text-left">CODIGO</th>
+                  <th className="py-2.5 px-3 text-left">PROVEEDOR</th>
+                  <th className="py-2.5 px-3 text-left">COMPONENTE</th>
+                  <th className="py-2.5 px-3 text-left">ULTIMA COMPRA</th>
+                  <th className="py-2.5 px-3 text-left">ULTIMA ACT PRECIO</th>
                   <th className="py-2.5 px-3 text-right">P.U. USD</th>
                   <th className="py-2.5 px-3 text-right">P.U $</th>
                   <th className="py-2.5 px-3 text-right">P.U+ IVA</th>

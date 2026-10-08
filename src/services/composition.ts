@@ -19,6 +19,12 @@ import { ProductDomainService } from '@/services/product.service';
 import { PriceListRepository } from '@/repositories/price-list.repository';
 import { PriceListDomainService } from '@/services/price-list.service';
 
+import { DiscountProfileRepository } from '@/repositories/discount-profile.repository';
+import { CostGainDomainService } from '@/services/cost-gain.service';
+
+import { PatrimonyRepository } from '@/repositories/patrimony.repository';
+import { PatrimonyDomainService } from '@/services/patrimony.service';
+
 /**
  * Composition Root para instanciación controlada y unificada de servicios
  * del lado servidor. Aísla service_role de Client Components y previene
@@ -31,6 +37,9 @@ let formulaServiceInstance: FormulaDomainService | null = null;
 let costEngineServiceInstance: CostEngineService | null = null;
 let productServiceInstance: ProductDomainService | null = null;
 let priceListServiceInstance: PriceListDomainService | null = null;
+let costGainServiceInstance: CostGainDomainService | null = null;
+let patrimonyServiceInstance: PatrimonyDomainService | null = null;
+let supplierItemRepoInstance: SupplierItemRepository | null = null;
 
 export function getCustomerService(): CustomerDomainService {
   if (!customerServiceInstance) {
@@ -116,4 +125,36 @@ export function getPriceListService(): PriceListDomainService {
   }
   return priceListServiceInstance;
 }
+
+export function getCostGainService(): CostGainDomainService {
+  if (!costGainServiceInstance) {
+    const discountProfileRepo = new DiscountProfileRepository(serverSupabase);
+    const priceListRepo = new PriceListRepository(serverSupabase);
+    const productRepo = new ProductRepository(serverSupabase);
+    const costEngineService = getCostEngineService();
+    costGainServiceInstance = new CostGainDomainService(
+      discountProfileRepo,
+      priceListRepo,
+      productRepo,
+      costEngineService
+    );
+  }
+  return costGainServiceInstance;
+}
+
+export function getSupplierItemRepository(): SupplierItemRepository {
+  if (!supplierItemRepoInstance) {
+    supplierItemRepoInstance = new SupplierItemRepository(serverSupabase);
+  }
+  return supplierItemRepoInstance;
+}
+
+export function getPatrimonyService(): PatrimonyDomainService {
+  if (!patrimonyServiceInstance) {
+    const patrimonyRepo = new PatrimonyRepository(serverSupabase);
+    patrimonyServiceInstance = new PatrimonyDomainService(patrimonyRepo);
+  }
+  return patrimonyServiceInstance;
+}
+
 

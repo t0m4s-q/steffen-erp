@@ -30,6 +30,7 @@ export interface ICostEngineService {
   getCurrentStockItemCost(stockItemId: string): Promise<Decimal>;
   getCurrentFormulaCost(baseProductId: string): Promise<FormulaCostResult>;
   getCurrentProductCost(productId: string): Promise<ProductCostResult>;
+  getBatchProductCosts?(): Promise<Map<string, Decimal>>;
 }
 
 export class CostEngineService implements ICostEngineService {
@@ -145,4 +146,13 @@ export class CostEngineService implements ICostEngineService {
       totalCost,
     };
   }
+
+  /**
+   * Obtiene en una consulta batch los costos teóricos vigentes de todos los productos
+   * consultando la vista consolidada v_current_product_cost.
+   */
+  async getBatchProductCosts(): Promise<Map<string, Decimal>> {
+    return this.productRepo.getBatchProductCosts();
+  }
 }
+

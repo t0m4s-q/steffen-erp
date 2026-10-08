@@ -29,12 +29,64 @@ export interface PatrimonialMovementRpcResult {
   code: string;
 }
 
+export interface PatrimonialMovementRecord {
+  id: string;
+  code: string;
+  operationId: string;
+  movementType: PatrimonialMovementType;
+  description: string;
+  amountArs: Decimal;
+  createdAt: string;
+}
+
 export interface IPatrimonyRepository {
   getAccount(accountId: string): Promise<FinancialAccountRecord | null>;
+  listAccounts(): Promise<FinancialAccountRecord[]>;
+  listRecentMovements(limit?: number): Promise<PatrimonialMovementRecord[]>;
   postPatrimonialMovementAtomic(input: PostPatrimonialMovementRpcInput): Promise<PatrimonialMovementRpcResult>;
 }
 
 export class PatrimonyRepository extends BaseSupabaseRepository implements IPatrimonyRepository {
+  async listAccounts(): Promise<FinancialAccountRecord[]> {
+    const { data, error } = await this.client
+      .from('financial_accounts')
+      .select('id, account_type, name, current_balance, active');
+
+    if (error) {
+      throw new DomainError(`Error obteniendo cuentas financieras: ${error.message}`);
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      accountType: row.account_type as AccountType,
+      name: row.name,
+      currentBalance: new Decimal(row.current_balance),
+      active: row.active,
+    }));
+  }
+
+  async listRecentMovements(limit = 10): Promise<PatrimonialMovementRecord[]> {
+    const { data, error } = await this.client
+      .from('patrimonial_movements')
+      .select('id, code, operation_id, movement_type, description, amount_ars, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new DomainError(`Error obteniendo movimientos patrimoniales: ${error.message}`);
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      code: row.code,
+      operationId: row.operation_id,
+      movementType: row.movement_type as PatrimonialMovementType,
+      description: row.description,
+      amountArs: new Decimal(row.amount_ars),
+      createdAt: row.created_at,
+    }));
+  }
+
   async getAccount(accountId: string): Promise<FinancialAccountRecord | null> {
     const { data, error } = await this.client
       .from('financial_accounts')

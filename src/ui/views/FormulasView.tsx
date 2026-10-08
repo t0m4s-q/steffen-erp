@@ -14,11 +14,13 @@ import { ConfirmDialog } from '../components/UIComponents';
 interface FormulasViewProps {
   initialBaseProducts?: BaseProductDTO[];
   activeRawMaterials?: ActiveRawMaterialDTO[];
+  defaultAction?: string;
 }
 
 export const FormulasView: React.FC<FormulasViewProps> = ({
   initialBaseProducts = [],
   activeRawMaterials = [],
+  defaultAction,
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -30,7 +32,7 @@ export const FormulasView: React.FC<FormulasViewProps> = ({
   );
 
   // Modales
-  const [isNewFormulaModalOpen, setIsNewFormulaModalOpen] = useState(false);
+  const [isNewFormulaModalOpen, setIsNewFormulaModalOpen] = useState(defaultAction === 'new');
   const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
   const [editingBaseProduct, setEditingBaseProduct] = useState<BaseProductDTO | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -118,7 +120,7 @@ export const FormulasView: React.FC<FormulasViewProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsNewFormulaModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0E50A0] text-white hover:bg-blue-800 text-xs font-bold uppercase rounded-[2px] transition-colors cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0E50A0] text-white hover:bg-blue-800 text-xs font-bold uppercase rounded-[2px] transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             NUEVA FORMULA
@@ -133,7 +135,7 @@ export const FormulasView: React.FC<FormulasViewProps> = ({
       )}
 
       {/* Contenedor Principal según Figma: FORMULAS.png */}
-      <div className="bg-white rounded-[4px] border border-[#D9D9D9] p-6 shadow-xs min-h-[560px]">
+      <div className="bg-white rounded-[5px] border border-[#D9D9D9] p-6 min-h-[560px]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Panel Izquierdo: Lista de Productos Base (Columna 1 a 4) */}
           <div className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-[#D9D9D9] pb-6 lg:pb-0 lg:pr-6 flex flex-col">
@@ -179,7 +181,7 @@ export const FormulasView: React.FC<FormulasViewProps> = ({
                       onClick={() => setSelectedPbaId(bp.id)}
                       className={`w-full text-left py-2.5 px-3 flex items-center justify-between transition-colors cursor-pointer rounded-[4px] group ${
                         isSelected
-                          ? 'border-2 border-[#0E50A0] text-[#0E50A0] bg-[#0E50A0]/5 font-bold shadow-xs'
+                          ? 'border-2 border-[#0E50A0] text-[#0E50A0] bg-[#0E50A0]/5 font-bold'
                           : 'border border-transparent text-[#1B1B1B] hover:bg-gray-100 font-medium'
                       }`}
                     >
@@ -264,7 +266,7 @@ export const FormulasView: React.FC<FormulasViewProps> = ({
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-[#D9D9D9] text-black font-bold uppercase text-left">
+                      <tr className="bg-[#D9D9D9] text-black font-bold uppercase text-[11px] text-left">
                         <th className="py-2.5 px-3 w-28">CODIGO</th>
                         <th className="py-2.5 px-3">MATERIA PRIMA</th>
                         <th className="py-2.5 px-3 text-right w-36">CANTIDAD (KG)</th>
@@ -335,7 +337,7 @@ export const FormulasView: React.FC<FormulasViewProps> = ({
                 <div className="pt-6 flex justify-end">
                   <button
                     onClick={() => handleOpenEditVersion(selectedPba)}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0E50A0] text-white hover:bg-blue-800 text-xs font-bold uppercase rounded-[2px] transition-colors cursor-pointer shadow-xs"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0E50A0] text-white hover:bg-blue-800 text-xs font-bold uppercase rounded-[2px] transition-colors cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" />
                     Editar Formula

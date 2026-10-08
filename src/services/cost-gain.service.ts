@@ -236,6 +236,13 @@ export class CostGainDomainService implements ICostGainDomainService {
       priceMap.set(cp.productId, cp.priceArs);
     }
 
+    // Lectura batch de costos teóricos vigentes desde v_current_product_cost (O(1) queries)
+    const hasBatchCostSupport = typeof this.costEngineService.getBatchProductCosts === 'function';
+    let batchCostMap: Map<string, Decimal> | null = null;
+    if (hasBatchCostSupport) {
+      batchCostMap = await this.costEngineService.getBatchProductCosts!();
+    }
+
     const analyzedProducts: CostGainProductAnalysis[] = [];
 
     for (const prod of products) {
@@ -257,40 +264,70 @@ export class CostGainDomainService implements ICostGainDomainService {
       let gainArs: Decimal | null = null;
       let markup: Decimal | null = null;
 
-      try {
-        const costResult = await this.costEngineService.getCurrentProductCost(prod.productId);
-        const cost = costResult.totalCost;
-        if (cost.lt(0)) {
-          throw new InvalidProductCostInconsistencyError(prod.productId, cost.toString());
-        }
-
-        hasCost = true;
-        theoreticalCostArs = cost;
-
-        if (hasSalonPrice && netPriceArs !== null) {
-          if (cost.isZero()) {
-            gainArs = netPriceArs;
-            markup = null;
-          } else {
-            gainArs = netPriceArs.minus(cost);
-            markup = netPriceArs.dividedBy(cost);
+      if (hasBatchCostSupport && batchCostMap) {
+        const cost = batchCostMap.get(prod.productId);
+        if (cost !== undefined) {
+          if (cost.lt(0)) {
+            throw new InvalidProductCostInconsistencyError(prod.productId, cost.toString());
           }
-        }
-      } catch (err: unknown) {
-        // Tolerancia restringida a errores de configuración de insumos/fórmulas que impiden calcular costo teórico actual
-        if (
-          err instanceof NoCurrentFormulaError ||
-          err instanceof NoActiveSupplierItemCostError ||
-          err instanceof InvalidExchangeRateError
-        ) {
+
+          hasCost = true;
+          theoreticalCostArs = cost;
+
+          if (hasSalonPrice && netPriceArs !== null) {
+            if (cost.isZero()) {
+              gainArs = netPriceArs;
+              markup = null;
+            } else {
+              gainArs = netPriceArs.minus(cost);
+              markup = netPriceArs.dividedBy(cost);
+            }
+          }
+        } else {
+          // Si para un producto la vista consolidada no devuelve costo válido (ej. inactivo o sin fórmula vigente)
           hasCost = false;
           theoreticalCostArs = null;
-          costError = err.message;
+          costError = 'Sin costo registrado en la vista consolidada';
           gainArs = null;
           markup = null;
-        } else {
-          // Errores de infraestructura, Supabase, inconsistencia de dominio o programación se propagan
-          throw err;
+        }
+      } else {
+        // Fallback para engines mockeados que no implementan lectura batch
+        try {
+          const costResult = await this.costEngineService.getCurrentProductCost(prod.productId);
+          const cost = costResult.totalCost;
+          if (cost.lt(0)) {
+            throw new InvalidProductCostInconsistencyError(prod.productId, cost.toString());
+          }
+
+          hasCost = true;
+          theoreticalCostArs = cost;
+
+          if (hasSalonPrice && netPriceArs !== null) {
+            if (cost.isZero()) {
+              gainArs = netPriceArs;
+              markup = null;
+            } else {
+              gainArs = netPriceArs.minus(cost);
+              markup = netPriceArs.dividedBy(cost);
+            }
+          }
+        } catch (err: unknown) {
+          // Tolerancia restringida a errores de configuración de insumos/fórmulas que impiden calcular costo teórico actual
+          if (
+            err instanceof NoCurrentFormulaError ||
+            err instanceof NoActiveSupplierItemCostError ||
+            err instanceof InvalidExchangeRateError
+          ) {
+            hasCost = false;
+            theoreticalCostArs = null;
+            costError = err.message;
+            gainArs = null;
+            markup = null;
+          } else {
+            // Errores de infraestructura, Supabase, inconsistencia de dominio o programación se propagan
+            throw err;
+          }
         }
       }
 

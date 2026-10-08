@@ -94,7 +94,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       )}
 
       {/* Contenedor Interior de Tabla idéntico a Figma STOCK.png */}
-      <div className="rounded-xl border border-[#D9D9D9] p-5 mt-5">
+      <div className="rounded-[5px] border border-[#D9D9D9] p-5 mt-5">
         {/* Encabezado: Título a la izquierda, Buscador y Filtros a la derecha */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-black pb-2 mb-4">
           <h2 className="text-xl font-bold text-black tracking-tight">
@@ -150,11 +150,11 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-black text-black font-bold text-left uppercase">
-                  <th className="py-2.5 px-3">CODIGO</th>
-                  <th className="py-2.5 px-3">PRODUCTO FINAL</th>
-                  <th className="py-2.5 px-3">PRESENTACION</th>
-                  <th className="py-2.5 px-3">PRODUCTO BASE (PBA)</th>
+                <tr className="bg-[#D9D9D9] text-black font-bold uppercase text-[11px]">
+                  <th className="py-2.5 px-3 text-left">CODIGO</th>
+                  <th className="py-2.5 px-3 text-left">PRODUCTO FINAL</th>
+                  <th className="py-2.5 px-3 text-left">PRESENTACION</th>
+                  <th className="py-2.5 px-3 text-left">PRODUCTO BASE (PBA)</th>
                   <th className="py-2.5 px-3 text-right">STOCK ACTUAL</th>
                   <th className="py-2.5 px-3 text-right">STOCK MINIMO</th>
                   <th className="py-2.5 px-3 text-right">COSTO TOTAL</th>

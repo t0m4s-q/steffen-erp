@@ -32,6 +32,7 @@ interface RawMaterialsViewProps {
   activeBaseProducts?: BaseProductOptionDTO[];
   activeComponents?: ComponentOptionDTO[];
   defaultTab?: 'PRO' | 'MPR' | 'COM';
+  defaultAction?: string;
 }
 
 export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
@@ -42,6 +43,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
   activeBaseProducts = [],
   activeComponents = [],
   defaultTab = 'PRO',
+  defaultAction,
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -53,7 +55,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
 
   // Modales
   const [createOpen, setCreateOpen] = useState(false);
-  const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [createProductOpen, setCreateProductOpen] = useState(defaultAction === 'new' && defaultTab === 'PRO');
   const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterialDTO | null>(null);
 
   // Diálogo de confirmación para desactivación
@@ -127,7 +129,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
     <div className="space-y-6">
 
       {/* Tarjeta Principal de Stock según Figma: SOLAPA-MATERIA-Y-COMPONENTES.png */}
-      <div className="bg-white rounded-2xl border border-[#D9D9D9] p-6 shadow-xs">
+      <div className="bg-white rounded-[5px] border border-[#D9D9D9] p-6">
         
         {/* Barra Superior de Subpestañas y Botón Nuevo */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -237,7 +239,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
           />
         ) : (
           /* Contenedor Interior de Tabla idéntico a Figma */
-          <div className="rounded-xl border border-[#D9D9D9] p-5 mt-5">
+          <div className="rounded-[5px] border border-[#D9D9D9] p-5 mt-5">
             
             {/* Encabezado: Título a la izquierda, Buscador y Filtros a la derecha */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-black pb-2 mb-4">
@@ -294,13 +296,13 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-black text-black font-bold text-left uppercase">
-                      <th className="py-2.5 px-3">CODIGO</th>
-                      <th className="py-2.5 px-3">PROVEEDOR</th>
-                      <th className="py-2.5 px-3">MATERIA PRIMA</th>
-                      <th className="py-2.5 px-3">INCI</th>
-                      <th className="py-2.5 px-3">ULTIMA COMPRA</th>
-                      <th className="py-2.5 px-3">ULTIMA ACT PRECIO</th>
+                    <tr className="bg-[#D9D9D9] text-black font-bold uppercase text-[11px]">
+                      <th className="py-2.5 px-3 text-left">CODIGO</th>
+                      <th className="py-2.5 px-3 text-left">PROVEEDOR</th>
+                      <th className="py-2.5 px-3 text-left">MATERIA PRIMA</th>
+                      <th className="py-2.5 px-3 text-left">INCI</th>
+                      <th className="py-2.5 px-3 text-left">ULTIMA COMPRA</th>
+                      <th className="py-2.5 px-3 text-left">ULTIMA ACT PRECIO</th>
                       <th className="py-2.5 px-3 text-right">P.U. USD</th>
                       <th className="py-2.5 px-3 text-right">P.U $</th>
                       <th className="py-2.5 px-3 text-right">P.U+ IVA</th>
@@ -416,7 +418,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
       </div>
 
       {/* Tarjeta Inferior de Movimientos de Stock según Figma: STOCK.png */}
-      <div className="bg-white rounded-2xl border border-[#D9D9D9] p-6 shadow-xs">
+      <div className="bg-white rounded-[5px] border border-[#D9D9D9] p-6">
         <h2 className="text-xl font-bold text-black tracking-tight mb-4">
           Movimientos de stock
         </h2>

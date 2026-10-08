@@ -27,7 +27,7 @@ export const metadata = {
 };
 
 export default async function StockPage(props: {
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ tab?: string; action?: string }>;
 }) {
   // 1. Guard obligatorio de servidor: valida sesión activa del usuario
   const user = await getAuthenticatedUser();
@@ -44,6 +44,7 @@ export default async function StockPage(props: {
   } else if (searchParams.tab === 'productos') {
     defaultTab = 'PRO';
   }
+  const defaultAction = searchParams.action;
 
   // 2. Consulta de productos, materias primas, componentes, proveedores y productos base en paralelo
   const masterItemService = getMasterItemService();
@@ -142,6 +143,7 @@ export default async function StockPage(props: {
       activeBaseProducts={activeBaseProducts}
       activeComponents={activeComponents}
       defaultTab={defaultTab}
+      defaultAction={defaultAction}
     />
   );
 }

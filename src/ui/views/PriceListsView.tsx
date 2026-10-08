@@ -197,7 +197,7 @@ export const PriceListsView: React.FC<PriceListsViewProps> = ({
           <button
             type="button"
             onClick={() => setIsNewListModalOpen(true)}
-            className="h-[38px] px-4 rounded-[2px] text-xs font-bold uppercase tracking-wider bg-[#D2AB68] hover:bg-[#c29b58] text-white border border-[#D2AB68] inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            className="h-[38px] px-4 rounded-[2px] text-xs font-bold uppercase tracking-wider bg-[#D2AB68] hover:bg-[#c29b58] text-white border border-[#D2AB68] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nueva Lista</span>
@@ -206,7 +206,7 @@ export const PriceListsView: React.FC<PriceListsViewProps> = ({
       </div>
 
       {/* Selector de Listas de Precios (Tabs / Pills) */}
-      <div className="bg-white border border-[#D9D9D9] rounded-xl p-4 mb-6 shadow-xs">
+      <div className="bg-white border border-[#D9D9D9] rounded-[5px] p-4 mb-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           {/* Pills de Listas */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -223,7 +223,7 @@ export const PriceListsView: React.FC<PriceListsViewProps> = ({
                   disabled={isPending}
                   className={`h-[36px] px-3.5 rounded-[4px] text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer border ${
                     isSelected
-                      ? 'bg-black text-white border-black shadow-xs'
+                      ? 'bg-black text-white border-black'
                       : 'bg-gray-50 text-gray-700 border-[#D9D9D9] hover:bg-gray-100 hover:text-black'
                   } ${!list.active ? 'opacity-60 line-through' : ''}`}
                 >
@@ -270,7 +270,7 @@ export const PriceListsView: React.FC<PriceListsViewProps> = ({
                 type="button"
                 onClick={handleOpenGlobalIncrease}
                 disabled={activeProductsWithPrice.length === 0}
-                className="h-[36px] px-3.5 rounded-[2px] text-xs font-bold uppercase tracking-wider bg-[#0E50A0] hover:bg-[#0c4386] text-white border border-[#0E50A0] inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                className="h-[36px] px-3.5 rounded-[2px] text-xs font-bold uppercase tracking-wider bg-[#0E50A0] hover:bg-[#0c4386] text-white border border-[#0E50A0] inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Aumentar todos los productos con precio activo en esta lista"
               >
                 <TrendingUp className="w-3.5 h-3.5" />
@@ -293,7 +293,7 @@ export const PriceListsView: React.FC<PriceListsViewProps> = ({
       </div>
 
       {/* Contenedor Interior de Tabla según DESIGN.md Section 28 */}
-      <div className="rounded-xl border border-[#D9D9D9] bg-white p-5 shadow-xs">
+      <div className="rounded-[5px] border border-[#D9D9D9] bg-white p-5">
         {/* Encabezado de Tabla: Título, Filtros y Buscador */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-black pb-3 mb-4">
           <div className="flex items-center gap-2">
@@ -353,7 +353,7 @@ export const PriceListsView: React.FC<PriceListsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-black text-black font-bold text-left uppercase">
+                <tr className="bg-[#D9D9D9] text-black font-bold uppercase text-[11px]">
                   <th className="py-2.5 px-3 w-10 text-center">
                     <button
                       type="button"
