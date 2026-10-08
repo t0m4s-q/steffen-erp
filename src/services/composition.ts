@@ -16,6 +16,9 @@ import { FormulaDomainService } from '@/services/formula.service';
 import { ProductRepository } from '@/repositories/product.repository';
 import { ProductDomainService } from '@/services/product.service';
 
+import { PriceListRepository } from '@/repositories/price-list.repository';
+import { PriceListDomainService } from '@/services/price-list.service';
+
 /**
  * Composition Root para instanciación controlada y unificada de servicios
  * del lado servidor. Aísla service_role de Client Components y previene
@@ -27,6 +30,7 @@ let masterItemServiceInstance: MasterItemDomainService | null = null;
 let formulaServiceInstance: FormulaDomainService | null = null;
 let costEngineServiceInstance: CostEngineService | null = null;
 let productServiceInstance: ProductDomainService | null = null;
+let priceListServiceInstance: PriceListDomainService | null = null;
 
 export function getCustomerService(): CustomerDomainService {
   if (!customerServiceInstance) {
@@ -103,5 +107,13 @@ export function getProductService(): ProductDomainService {
     );
   }
   return productServiceInstance;
+}
+
+export function getPriceListService(): PriceListDomainService {
+  if (!priceListServiceInstance) {
+    const priceListRepo = new PriceListRepository(serverSupabase);
+    priceListServiceInstance = new PriceListDomainService(priceListRepo);
+  }
+  return priceListServiceInstance;
 }
 

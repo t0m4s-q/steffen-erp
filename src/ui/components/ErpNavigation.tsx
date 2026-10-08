@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: 'Cuentas Clientes', href: '/clientes' },
       { name: 'Cuentas Proveedores', href: '/proveedores' },
+      { name: 'Listas de Precios', href: '/precios' },
       { name: 'Estado del Sistema', href: '/system-status' },
     ],
   },
@@ -43,6 +44,7 @@ export const ErpNavDesktop: React.FC = () => {
           item.name === 'ADMINISTRACION' &&
           (pathname.startsWith('/clientes') ||
             pathname.startsWith('/proveedores') ||
+            pathname.startsWith('/precios') ||
             pathname.startsWith('/system-status'));
 
         const isActive = isDashboard || isStock || isFormulas || isAdmin;
@@ -170,6 +172,7 @@ export const ErpNavMobile: React.FC = () => {
           item.name === 'ADMINISTRACION' &&
           (pathname.startsWith('/clientes') ||
             pathname.startsWith('/proveedores') ||
+            pathname.startsWith('/precios') ||
             pathname.startsWith('/system-status'));
 
         const isActive = isDashboard || isStock || isFormulas || isAdmin;
