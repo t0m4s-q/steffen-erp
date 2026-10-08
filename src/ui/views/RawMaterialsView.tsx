@@ -7,7 +7,14 @@ import { NewRawMaterialModal } from '../modals/NewRawMaterialModal';
 import { EditRawMaterialModal } from '../modals/EditRawMaterialModal';
 import { toggleRawMaterialActiveAction } from '@/actions/master-item.actions';
 import type { RawMaterialDTO, ComponentDTO, SupplierOptionDTO } from '@/actions/master-item.dto';
+import type {
+  FinalProductDTO,
+  BaseProductOptionDTO,
+  ComponentOptionDTO,
+} from '@/actions/product.dto';
 import { ComponentsView } from './ComponentsView';
+import { ProductsView } from './ProductsView';
+import { NewProductModal } from '../modals/NewProductModal';
 import {
   Search,
   Edit3,
@@ -20,26 +27,33 @@ import {
 interface RawMaterialsViewProps {
   initialRawMaterials: RawMaterialDTO[];
   initialComponents?: ComponentDTO[];
+  initialProducts?: FinalProductDTO[];
   activeSuppliers: SupplierOptionDTO[];
-  defaultTab?: 'MPR' | 'COM';
+  activeBaseProducts?: BaseProductOptionDTO[];
+  activeComponents?: ComponentOptionDTO[];
+  defaultTab?: 'PRO' | 'MPR' | 'COM';
 }
 
 export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
   initialRawMaterials,
   initialComponents = [],
+  initialProducts = [],
   activeSuppliers,
-  defaultTab = 'MPR',
+  activeBaseProducts = [],
+  activeComponents = [],
+  defaultTab = 'PRO',
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [activeTab, setActiveTab] = useState<'MPR' | 'COM'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'PRO' | 'MPR' | 'COM'>(defaultTab);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [onlyCritical, setOnlyCritical] = useState(false);
 
   // Modales
   const [createOpen, setCreateOpen] = useState(false);
+  const [createProductOpen, setCreateProductOpen] = useState(false);
   const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterialDTO | null>(null);
 
   // Diálogo de confirmación para desactivación
@@ -120,11 +134,15 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
           
           {/* Subpestañas idénticas a Figma */}
           <div className="flex items-center gap-3">
+            {/* Solapa Productos */}
             <button
               type="button"
-              disabled
-              title="Módulo de Productos Finales próximo a migrar"
-              className="text-[#0E50A0] font-semibold text-xs uppercase px-3 py-1.5 flex items-center gap-1 opacity-60 cursor-not-allowed"
+              onClick={() => setActiveTab('PRO')}
+              className={
+                activeTab === 'PRO'
+                  ? 'border-2 border-[#0E50A0] text-[#0E50A0] bg-white rounded-lg px-4 py-1.5 font-bold text-xs uppercase flex items-center gap-1.5 cursor-default'
+                  : 'text-[#0E50A0] font-semibold text-xs uppercase px-3 py-1.5 flex items-center gap-1 hover:bg-blue-50/50 rounded-lg transition-colors cursor-pointer'
+              }
             >
               <span>Productos</span>
               <ChevronDown className="w-3.5 h-3.5" />
@@ -159,7 +177,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
             </button>
           </div>
 
-          {/* Botones a la derecha: Refrescar y Nueva Materia Prima (Azul Figma) */}
+          {/* Botones a la derecha: Refrescar y Nuevo */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -175,13 +193,23 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
               <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
             </button>
 
-            <Button
-              variant="azul"
-              onClick={() => setCreateOpen(true)}
-              className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
-            >
-              NUEVA MATERIA PRIMA/COMPONENTE
-            </Button>
+            {activeTab === 'PRO' ? (
+              <Button
+                variant="azul"
+                onClick={() => setCreateProductOpen(true)}
+                className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+              >
+                NUEVO PRODUCTO
+              </Button>
+            ) : (
+              <Button
+                variant="azul"
+                onClick={() => setCreateOpen(true)}
+                className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+              >
+                NUEVA MATERIA PRIMA/COMPONENTE
+              </Button>
+            )}
           </div>
 
         </div>
@@ -196,7 +224,13 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
         )}
 
         {/* Contenido según pestaña activa */}
-        {activeTab === 'COM' ? (
+        {activeTab === 'PRO' ? (
+          <ProductsView
+            products={initialProducts}
+            baseProducts={activeBaseProducts}
+            components={activeComponents}
+          />
+        ) : activeTab === 'COM' ? (
           <ComponentsView
             components={initialComponents}
             activeSuppliers={activeSuppliers}
@@ -412,7 +446,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
       <NewRawMaterialModal
         isOpen={createOpen}
         activeSuppliers={activeSuppliers}
-        initialType={activeTab}
+        initialType={activeTab === 'COM' ? 'COM' : 'MPR'}
         onClose={() => setCreateOpen(false)}
         onSuccess={() => {
           startTransition(() => {
@@ -433,6 +467,21 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
           });
         }}
       />
+
+      {/* Modal de Alta de Producto Final */}
+      {createProductOpen && (
+        <NewProductModal
+          isOpen={createProductOpen}
+          baseProducts={activeBaseProducts}
+          components={activeComponents}
+          onClose={() => setCreateProductOpen(false)}
+          onSuccess={() => {
+            startTransition(() => {
+              router.refresh();
+            });
+          }}
+        />
+      )}
 
       {/* ConfirmDialog para Desactivación */}
       {confirmDialogMpr && (

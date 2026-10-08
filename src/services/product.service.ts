@@ -161,11 +161,12 @@ export class ProductDomainService implements IProductDomainService {
     const created = await this.productRepo.createProduct(createInput);
 
     // 10. Enriquecer con saldo de stock, componentes y costo teórico actual
-    const [balance, components, cost] = await Promise.all([
+    const [balance, rawComponents, cost] = await Promise.all([
       this.stockDomainService.getStockBalance(created.productId),
       this.productRepo.getProductComponents(created.productId),
       this.costEngineService.getCurrentProductCost(created.productId),
     ]);
+    const components = await this.enrichComponentsWithCosts(rawComponents);
 
     return {
       ...created,
@@ -186,11 +187,12 @@ export class ProductDomainService implements IProductDomainService {
     const product = await this.productRepo.getProductDetails(productId);
     if (!product) return null;
 
-    const [balance, components, cost] = await Promise.all([
+    const [balance, rawComponents, cost] = await Promise.all([
       this.stockDomainService.getStockBalance(productId),
       this.productRepo.getProductComponents(productId),
       this.costEngineService.getCurrentProductCost(productId),
     ]);
+    const components = await this.enrichComponentsWithCosts(rawComponents);
 
     return {
       ...product,
@@ -208,7 +210,7 @@ export class ProductDomainService implements IProductDomainService {
 
     return Promise.all(
       products.map(async (p) => {
-        const [balance, components, cost] = await Promise.all([
+        const [balance, rawComponents, cost] = await Promise.all([
           this.stockDomainService.getStockBalance(p.productId),
           this.productRepo.getProductComponents(p.productId),
           this.costEngineService.getCurrentProductCost(p.productId).catch(() => ({
@@ -218,12 +220,33 @@ export class ProductDomainService implements IProductDomainService {
             totalCost: new Decimal(0),
           })),
         ]);
+        const components = await this.enrichComponentsWithCosts(rawComponents);
 
         return {
           ...p,
           balance,
           cost,
           components,
+        };
+      })
+    );
+  }
+
+  private async enrichComponentsWithCosts(
+    components: ProductComponentDetailRecord[]
+  ): Promise<ProductComponentDetailRecord[]> {
+    return Promise.all(
+      components.map(async (c) => {
+        let unitCost = new Decimal(0);
+        try {
+          unitCost = await this.costEngineService.getCurrentStockItemCost(c.componentId);
+        } catch {
+          unitCost = new Decimal(0);
+        }
+        return {
+          ...c,
+          unitCostArs: unitCost,
+          lineCostArs: c.quantityPerUnit.times(unitCost),
         };
       })
     );

@@ -13,6 +13,8 @@ import { CostEngineService } from '@/services/cost-engine.service';
 
 import { FormulaRepository } from '@/repositories/formula.repository';
 import { FormulaDomainService } from '@/services/formula.service';
+import { ProductRepository } from '@/repositories/product.repository';
+import { ProductDomainService } from '@/services/product.service';
 
 /**
  * Composition Root para instanciación controlada y unificada de servicios
@@ -24,6 +26,7 @@ let supplierServiceInstance: SupplierDomainService | null = null;
 let masterItemServiceInstance: MasterItemDomainService | null = null;
 let formulaServiceInstance: FormulaDomainService | null = null;
 let costEngineServiceInstance: CostEngineService | null = null;
+let productServiceInstance: ProductDomainService | null = null;
 
 export function getCustomerService(): CustomerDomainService {
   if (!customerServiceInstance) {
@@ -45,7 +48,8 @@ export function getCostEngineService(): CostEngineService {
   if (!costEngineServiceInstance) {
     const supplierItemRepo = new SupplierItemRepository(serverSupabase);
     const formulaRepo = new FormulaRepository(serverSupabase);
-    costEngineServiceInstance = new CostEngineService(supplierItemRepo, formulaRepo);
+    const productRepo = new ProductRepository(serverSupabase);
+    costEngineServiceInstance = new CostEngineService(supplierItemRepo, formulaRepo, productRepo);
   }
   return costEngineServiceInstance;
 }
@@ -82,5 +86,22 @@ export function getFormulaService(): FormulaDomainService {
     );
   }
   return formulaServiceInstance;
+}
+
+export function getProductService(): ProductDomainService {
+  if (!productServiceInstance) {
+    const productRepo = new ProductRepository(serverSupabase);
+    const formulaRepo = new FormulaRepository(serverSupabase);
+    const costEngineService = getCostEngineService();
+    const stockRepo = new StockRepository(serverSupabase);
+    const stockDomainService = new StockDomainService(stockRepo);
+    productServiceInstance = new ProductDomainService(
+      productRepo,
+      formulaRepo,
+      costEngineService,
+      stockDomainService
+    );
+  }
+  return productServiceInstance;
 }
 

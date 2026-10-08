@@ -40,6 +40,8 @@ export interface ProductComponentDetailRecord {
   componentName: string;
   quantityPerUnit: Decimal;
   sortOrder: number;
+  unitCostArs?: Decimal;
+  lineCostArs?: Decimal;
 }
 
 export interface CreateProductInput {
