@@ -5,6 +5,7 @@ import {
   getSupplierService,
   getProductService,
   getFormulaService,
+  getStockService,
 } from '@/services/composition';
 import {
   serializeRawMaterial,
@@ -16,6 +17,10 @@ import {
   type BaseProductOptionDTO,
   type ComponentOptionDTO,
 } from '@/actions/product.dto';
+import {
+  serializeStockMovement,
+  type StockMovementDTO,
+} from '@/actions/stock.dto';
 import { RawMaterialsView } from '@/ui/views/RawMaterialsView';
 import { Decimal, toNumericString } from '@/domain/decimal';
 
@@ -46,20 +51,28 @@ export default async function StockPage(props: {
   }
   const defaultAction = searchParams.action;
 
-  // 2. Consulta de productos, materias primas, componentes, proveedores y productos base en paralelo
+  // 2. Consulta de productos, materias primas, componentes, proveedores, productos base y movimientos en paralelo
   const masterItemService = getMasterItemService();
   const supplierService = getSupplierService();
   const productService = getProductService();
   const formulaService = getFormulaService();
+  const stockService = getStockService();
 
-  const [rawMaterialRecords, componentRecords, supplierRecords, productRecords, baseProductRecords] =
-    await Promise.all([
-      masterItemService.listMasterItems('MPR', true),
-      masterItemService.listMasterItems('COM', true),
-      supplierService.listSuppliers(false), // solo proveedores activos
-      productService.listProducts(true),
-      formulaService.listBaseProducts(true),
-    ]);
+  const [
+    rawMaterialRecords,
+    componentRecords,
+    supplierRecords,
+    productRecords,
+    baseProductRecords,
+    recentMovements,
+  ] = await Promise.all([
+    masterItemService.listMasterItems('MPR', true),
+    masterItemService.listMasterItems('COM', true),
+    supplierService.listSuppliers(false), // solo proveedores activos
+    productService.listProducts(true),
+    formulaService.listBaseProducts(true),
+    stockService.listRecentMovements(50),
+  ]);
 
   // 3. Ordenamiento normativo por ratio de stock: stock_actual / stock_minimo ASC
   // Resuelto en servidor con aritmética exacta Decimal (sin floating-point de JS)
@@ -134,11 +147,14 @@ export default async function StockPage(props: {
         : null,
     }));
 
+  const initialMovements = recentMovements.map(serializeStockMovement);
+
   return (
     <RawMaterialsView
       initialRawMaterials={initialRawMaterials}
       initialComponents={initialComponents}
       initialProducts={initialProducts}
+      initialMovements={initialMovements}
       activeSuppliers={activeSuppliers}
       activeBaseProducts={activeBaseProducts}
       activeComponents={activeComponents}

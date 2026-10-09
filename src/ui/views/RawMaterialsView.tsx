@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, ConfirmDialog } from '../components/UIComponents';
 import { NewRawMaterialModal } from '../modals/NewRawMaterialModal';
@@ -15,6 +15,8 @@ import type {
 import { ComponentsView } from './ComponentsView';
 import { ProductsView } from './ProductsView';
 import { NewProductModal } from '../modals/NewProductModal';
+import { StockAdjustmentModal, type StockAdjustableItem } from '../modals/StockAdjustmentModal';
+import type { StockMovementDTO } from '@/actions/stock.dto';
 import {
   Search,
   Edit3,
@@ -28,6 +30,7 @@ interface RawMaterialsViewProps {
   initialRawMaterials: RawMaterialDTO[];
   initialComponents?: ComponentDTO[];
   initialProducts?: FinalProductDTO[];
+  initialMovements?: StockMovementDTO[];
   activeSuppliers: SupplierOptionDTO[];
   activeBaseProducts?: BaseProductOptionDTO[];
   activeComponents?: ComponentOptionDTO[];
@@ -39,6 +42,7 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
   initialRawMaterials,
   initialComponents = [],
   initialProducts = [],
+  initialMovements = [],
   activeSuppliers,
   activeBaseProducts = [],
   activeComponents = [],
@@ -57,10 +61,49 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
   const [createOpen, setCreateOpen] = useState(false);
   const [createProductOpen, setCreateProductOpen] = useState(defaultAction === 'new' && defaultTab === 'PRO');
   const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterialDTO | null>(null);
+  const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
+  const [preselectedAdjustItemId, setPreselectedAdjustItemId] = useState<string | null>(null);
+  const [movementNotice, setMovementNotice] = useState<string | null>(null);
 
   // Diálogo de confirmación para desactivación
   const [confirmDialogMpr, setConfirmDialogMpr] = useState<RawMaterialDTO | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Lista consolidada de ítems para el modal de ajuste manual de stock (PRO, MPR, COM)
+  const adjustableItems: StockAdjustableItem[] = useMemo(() => {
+    const list: StockAdjustableItem[] = [];
+    for (const p of initialProducts) {
+      list.push({
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        itemType: 'PRO',
+        unitType: 'UNIT',
+        currentBalance: p.stockCurrent,
+      });
+    }
+    for (const m of initialRawMaterials) {
+      list.push({
+        id: m.id,
+        code: m.code,
+        name: m.name,
+        itemType: 'MPR',
+        unitType: 'KG',
+        currentBalance: m.stockCurrentKg,
+      });
+    }
+    for (const c of initialComponents) {
+      list.push({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        itemType: 'COM',
+        unitType: 'UNIT',
+        currentBalance: c.stockCurrentUnits,
+      });
+    }
+    return list.sort((a, b) => a.code.localeCompare(b.code));
+  }, [initialProducts, initialRawMaterials, initialComponents]);
 
   // Filtrado en cliente sobre DTOs ya ordenados por ratio en servidor
   const filteredMaterials = initialRawMaterials.filter((m) => {
@@ -195,6 +238,17 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
               <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
             </button>
 
+            <Button
+              variant="secundario"
+              onClick={() => {
+                setPreselectedAdjustItemId(null);
+                setAdjustmentModalOpen(true);
+              }}
+              className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider"
+            >
+              AJUSTE DE STOCK
+            </Button>
+
             {activeTab === 'PRO' ? (
               <Button
                 variant="azul"
@@ -216,8 +270,17 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
 
         </div>
 
+        {movementNotice && (
+          <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-[2px] text-xs font-semibold text-emerald-800 flex justify-between items-center">
+            <span>{movementNotice}</span>
+            <button onClick={() => setMovementNotice(null)} className="text-gray-400 hover:text-black font-bold">
+              ✕
+            </button>
+          </div>
+        )}
+
         {actionError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-[#DD0000] flex justify-between items-center">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-[2px] text-xs font-semibold text-[#DD0000] flex justify-between items-center">
             <span>{actionError}</span>
             <button onClick={() => setActionError(null)} className="text-gray-400 hover:text-black font-bold">
               ✕
@@ -419,26 +482,78 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
 
       {/* Tarjeta Inferior de Movimientos de Stock según Figma: STOCK.png */}
       <div className="bg-white rounded-[5px] border border-[#D9D9D9] p-6">
-        <h2 className="text-xl font-bold text-black tracking-tight mb-4">
-          Movimientos de stock
-        </h2>
-        <div className="overflow-x-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-black tracking-tight">
+            Movimientos de stock
+          </h2>
+          <span className="text-xs text-gray-500 font-medium">
+            Últimos {initialMovements.length} movimientos (MST)
+          </span>
+        </div>
+
+        <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
           <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-black text-black font-bold text-left uppercase">
-                <th className="py-2 px-3">CODIGO</th>
-                <th className="py-2 px-3">FECHA</th>
-                <th className="py-2 px-3">TIPO</th>
-                <th className="py-2 px-3">REGISTRO</th>
-                <th className="py-2 px-3">DESCRIPCION</th>
+            <thead className="sticky top-0 bg-[#D9D9D9] z-10">
+              <tr className="text-black font-bold text-left uppercase text-[11px]">
+                <th className="py-2.5 px-3">CODIGO</th>
+                <th className="py-2.5 px-3">FECHA</th>
+                <th className="py-2.5 px-3">TIPO</th>
+                <th className="py-2.5 px-3">REGISTRO</th>
+                <th className="py-2.5 px-3">DESCRIPCION</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td colSpan={5} className="py-6 text-center text-gray-400 font-medium">
-                  Los movimientos automáticos y manuales de stock (MST) se registrarán en su módulo respectivo de Fase 4.
-                </td>
-              </tr>
+            <tbody className="divide-y divide-[#E5E5E5]">
+              {initialMovements.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-gray-400 font-medium text-xs">
+                    No hay movimientos de stock registrados en el sistema.
+                  </td>
+                </tr>
+              ) : (
+                initialMovements.map((m) => {
+                  const isPositive = m.quantityDeltaFormatted.startsWith('+');
+                  return (
+                    <tr key={m.id} className="hover:bg-gray-50 text-black">
+                      <td className="py-2.5 px-3 font-bold font-mono text-[11px]">
+                        {m.code}
+                      </td>
+                      <td className="py-2.5 px-3 text-[11px] text-gray-700 whitespace-nowrap">
+                        {m.businessDate || m.createdAt.slice(0, 10)}
+                      </td>
+                      <td className="py-2.5 px-3 text-[11px] whitespace-nowrap">
+                        <span
+                          className={`px-2 py-0.5 rounded-[2px] font-bold text-[10px] uppercase ${
+                            m.movementType === 'AJUSTE'
+                              ? 'bg-amber-100 text-amber-800'
+                              : m.movementType === 'FABRICACIÓN' || m.movementType === 'ENVASADO'
+                              ? 'bg-blue-100 text-[#0E50A0]'
+                              : m.movementType === 'VENTA'
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}
+                        >
+                          {m.movementType}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-[11px]">
+                        <span className="font-semibold text-black">
+                          [{m.itemCode}] {m.itemName}
+                        </span>
+                        <span
+                          className={`ml-2 font-mono font-bold whitespace-nowrap ${
+                            isPositive ? 'text-emerald-700' : 'text-rose-700'
+                          }`}
+                        >
+                          {m.quantityDeltaFormatted}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-[11px] text-gray-600">
+                        {m.description}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -484,6 +599,20 @@ export const RawMaterialsView: React.FC<RawMaterialsViewProps> = ({
           }}
         />
       )}
+
+      {/* Modal de Ajuste Manual de Stock */}
+      <StockAdjustmentModal
+        isOpen={adjustmentModalOpen}
+        items={adjustableItems}
+        preselectedItemId={preselectedAdjustItemId}
+        onClose={() => setAdjustmentModalOpen(false)}
+        onSuccess={(res) => {
+          setMovementNotice(`Ajuste ${res.movementCode} registrado con éxito.`);
+          startTransition(() => {
+            router.refresh();
+          });
+        }}
+      />
 
       {/* ConfirmDialog para Desactivación */}
       {confirmDialogMpr && (

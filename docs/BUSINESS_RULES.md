@@ -468,6 +468,16 @@ PRO:
 
 ---
 
+## 8.5 Prohibición de stock negativo
+
+Regla normativa única:
+
+- Ningún ítem de stock (PRO, MPR, COM) puede tener saldo negativo (`stock_actual >= 0`).
+- La base de datos protege esta invariante mediante restricción estricta (`stock_balances.quantity >= 0`).
+- Cualquier operación (AJUSTE, COMPRA, VENTA, FABRICACIÓN, ENVASADO) cuyo impacto resultare en un saldo negativo es rechazada atómicamente, provocando rollback total sin generar movimiento MST ni alterar saldos.
+
+---
+
 # 9. MOVIMIENTOS DE STOCK
 
 Código:
@@ -494,10 +504,12 @@ Se pueden ajustar manualmente:
 
 Un ajuste puede ser:
 
-- positivo;
-- negativo.
+- positivo (aumenta inventario);
+- negativo (descuenta inventario).
 
 Debe conservar motivo/observación.
+
+Restricción estricta: un ajuste negativo no puede superar el saldo disponible en depósito. Si la cantidad a restar supera el saldo actual, la operación es rechazada inmediatamente por stock insuficiente.
 
 ---
 

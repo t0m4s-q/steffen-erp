@@ -1,14 +1,33 @@
-﻿
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   
-  "public": {
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
           Tables: {
             "base_products": {
                   Row: {
                     "active": boolean,"code": string,"created_at": string,"created_date": string,"id": string,"name": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"code": string,"created_at"?: string,"created_date"?: string,"id"?: string,"name": string,"updated_at"?: string
                   }
@@ -22,6 +41,7 @@ export type Database = {
                   Row: {
                     "bulk_lot_id": string,"fx_rate_snapshot": number | null,"id": string,"quantity_kg": number,"raw_material_id": string,"source_currency": string,"source_supplier_id": string | null,"source_unit_price_net": number,"total_cost_ars_snapshot": number,"unit_cost_gross_ars_snapshot": number,"vat_rate_pct": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "bulk_lot_id": string,"fx_rate_snapshot"?: number | null,"id"?: string,"quantity_kg": number,"raw_material_id": string,"source_currency": string,"source_supplier_id"?: string | null,"source_unit_price_net": number,"total_cost_ars_snapshot": number,"unit_cost_gross_ars_snapshot": number,"vat_rate_pct"?: number
                   }
@@ -59,6 +79,7 @@ isOneToOne: false
                   Row: {
                     "base_product_id": string,"closed_at": string | null,"code": string,"cost_per_kg_snapshot_ars": number,"created_at": string,"formula_version_id": string,"id": string,"kg_available": number,"kg_fabricated": number,"observations": string | null,"operation_id": string,"status": string,"total_cost_snapshot_ars": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "base_product_id": string,"closed_at"?: string | null,"code": string,"cost_per_kg_snapshot_ars"?: number,"created_at"?: string,"formula_version_id": string,"id"?: string,"kg_available": number,"kg_fabricated": number,"observations"?: string | null,"operation_id": string,"status": string,"total_cost_snapshot_ars"?: number
                   }
@@ -102,6 +123,7 @@ isOneToOne: true
                   Row: {
                     "business_date": string,"created_at": string,"id": string,"operation_type": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "business_date": string,"created_at"?: string,"id"?: string,"operation_type": string,"updated_at"?: string
                   }
@@ -115,6 +137,7 @@ isOneToOne: true
                   Row: {
                     "last_value": number,"prefix": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "last_value"?: number,"prefix": string,"updated_at"?: string
                   }
@@ -128,6 +151,7 @@ isOneToOne: true
                   Row: {
                     "stock_item_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "stock_item_id": string
                   }
@@ -153,6 +177,7 @@ isOneToOne: true
                   Row: {
                     "active": boolean,"address": string | null,"category": string | null,"code": string,"created_at": string,"created_date": string,"discount_1_pct": number | null,"discount_2_pct": number | null,"discount_3_pct": number | null,"dni": string | null,"id": string,"locality": string | null,"name": string,"phone": string | null,"province": string | null,"transport_address": string | null,"transport_name": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"address"?: string | null,"category"?: string | null,"code": string,"created_at"?: string,"created_date"?: string,"discount_1_pct"?: number | null,"discount_2_pct"?: number | null,"discount_3_pct"?: number | null,"dni"?: string | null,"id"?: string,"locality"?: string | null,"name": string,"phone"?: string | null,"province"?: string | null,"transport_address"?: string | null,"transport_name"?: string | null,"updated_at"?: string
                   }
@@ -166,6 +191,7 @@ isOneToOne: true
                   Row: {
                     "discount_profile_id": string,"id": string,"percent": number,"position": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "discount_profile_id": string,"id"?: string,"percent": number,"position": number
                   }
@@ -185,6 +211,7 @@ isOneToOne: false
                   Row: {
                     "active": boolean,"id": string,"name": string,"sort_order": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"id"?: string,"name": string,"sort_order"?: number
                   }
@@ -198,6 +225,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"currency_code": string,"effective_at": string,"id": string,"is_current": boolean,"rate_to_ars": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"currency_code": string,"effective_at"?: string,"id"?: string,"is_current"?: boolean,"rate_to_ars": number
                   }
@@ -211,6 +239,7 @@ isOneToOne: false
                   Row: {
                     "base_product_id": string | null,"bulk_lot_id": string | null,"code": string,"created_at": string,"description": string,"id": string,"movement_type": string,"operation_id": string,"quantity_kg": number | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "base_product_id"?: string | null,"bulk_lot_id"?: string | null,"code": string,"created_at"?: string,"description": string,"id"?: string,"movement_type": string,"operation_id": string,"quantity_kg"?: number | null
                   }
@@ -248,6 +277,7 @@ isOneToOne: false
                   Row: {
                     "account_type": string,"active": boolean,"created_at": string,"current_balance": number,"customer_id": string | null,"id": string,"name": string,"supplier_id": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "account_type": string,"active"?: boolean,"created_at"?: string,"current_balance"?: number,"customer_id"?: string | null,"id"?: string,"name": string,"supplier_id"?: string | null,"updated_at"?: string
                   }
@@ -285,6 +315,7 @@ isOneToOne: true
                   Row: {
                     "created_at": string,"delta_ars": number,"financial_account_id": string,"id": string,"patrimonial_movement_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"delta_ars": number,"financial_account_id": string,"id"?: string,"patrimonial_movement_id": string
                   }
@@ -322,6 +353,7 @@ isOneToOne: false
                   Row: {
                     "formula_version_id": string,"id": string,"quantity_kg": number,"raw_material_id": string,"sort_order": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "formula_version_id": string,"id"?: string,"quantity_kg": number,"raw_material_id": string,"sort_order"?: number
                   }
@@ -353,6 +385,7 @@ isOneToOne: false
                   Row: {
                     "base_product_id": string,"business_date": string,"created_at": string,"id": string,"is_current": boolean,"observations": string | null,"version_number": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "base_product_id": string,"business_date"?: string,"created_at"?: string,"id"?: string,"is_current"?: boolean,"observations"?: string | null,"version_number": number
                   }
@@ -378,6 +411,7 @@ isOneToOne: false
                   Row: {
                     "attempt_count": number,"created_at": string,"document_type": string,"error_message": string | null,"file_reference": string | null,"file_size_bytes": number | null,"generated_at": string | null,"generation_status": string,"id": string,"payload_snapshot": NonNullable<Json>,"renderer_type": string,"source_id": string,"source_type": string,"template_key": string,"template_version": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "attempt_count"?: number,"created_at"?: string,"document_type": string,"error_message"?: string | null,"file_reference"?: string | null,"file_size_bytes"?: number | null,"generated_at"?: string | null,"generation_status"?: string,"id"?: string,"payload_snapshot": NonNullable<Json>,"renderer_type"?: string,"source_id": string,"source_type": string,"template_key": string,"template_version": string
                   }
@@ -391,6 +425,7 @@ isOneToOne: false
                   Row: {
                     "id": string,"margin_remittance_id": string,"product_id": string,"quantity_sent": number,"total_cost_snapshot_ars": number,"unit_cost_theoretical_snapshot_ars": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "id"?: string,"margin_remittance_id": string,"product_id": string,"quantity_sent": number,"total_cost_snapshot_ars": number,"unit_cost_theoretical_snapshot_ars": number
                   }
@@ -428,6 +463,7 @@ isOneToOne: false
                   Row: {
                     "code": string,"created_at": string,"gain_ars": number,"id": string,"operation_id": string,"products_cost_total_ars": number,"remittance_id": string,"transport_cost_ars": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "code": string,"created_at"?: string,"gain_ars": number,"id"?: string,"operation_id": string,"products_cost_total_ars": number,"remittance_id": string,"transport_cost_ars"?: number
                   }
@@ -459,6 +495,7 @@ isOneToOne: true
                   Row: {
                     "commission_amount_ars": number,"created_at": string,"gross_amount_ars": number,"id": string,"net_amount_ars": number,"operation_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "commission_amount_ars": number,"created_at"?: string,"gross_amount_ars": number,"id"?: string,"net_amount_ars": number,"operation_id": string
                   }
@@ -478,6 +515,7 @@ isOneToOne: true
                   Row: {
                     "amount_ars": number,"created_at": string,"description": string | null,"expense_type": string,"id": string,"operation_id": string,"source_account_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "amount_ars": number,"created_at"?: string,"description"?: string | null,"expense_type": string,"id"?: string,"operation_id": string,"source_account_id": string
                   }
@@ -515,6 +553,7 @@ isOneToOne: false
                   Row: {
                     "id": string,"order_id": string,"percent": number,"position": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "id"?: string,"order_id": string,"percent": number,"position": number
                   }
@@ -534,6 +573,7 @@ isOneToOne: false
                   Row: {
                     "ag_quantity": number | null,"created_at": string,"id": string,"order_id": string,"product_id": string,"requested_quantity": number,"sort_order": number,"unit_price_ars_snapshot": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "ag_quantity"?: number | null,"created_at"?: string,"id"?: string,"order_id": string,"product_id": string,"requested_quantity": number,"sort_order"?: number,"unit_price_ars_snapshot": number,"updated_at"?: string
                   }
@@ -565,6 +605,7 @@ isOneToOne: false
                   Row: {
                     "address": string | null,"business_date": string,"code": string,"converted_rto_id": string | null,"created_at": string,"customer_id": string | null,"customer_source": string,"id": string,"locality": string | null,"package_count": number | null,"phone": string | null,"planning_sort_key": number,"price_list_id": string,"price_snapshot_at": string,"province": string | null,"recipient_name": string | null,"status": string,"transport_address": string | null,"transport_name": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "address"?: string | null,"business_date"?: string,"code": string,"converted_rto_id"?: string | null,"created_at"?: string,"customer_id"?: string | null,"customer_source": string,"id"?: string,"locality"?: string | null,"package_count"?: number | null,"phone"?: string | null,"planning_sort_key"?: number,"price_list_id": string,"price_snapshot_at"?: string,"province"?: string | null,"recipient_name"?: string | null,"status": string,"transport_address"?: string | null,"transport_name"?: string | null,"updated_at"?: string
                   }
@@ -596,6 +637,7 @@ isOneToOne: false
                   Row: {
                     "component_id": string,"id": string,"packaging_operation_id": string,"quantity_per_unit": number,"quantity_total": number,"total_cost_ars_snapshot": number,"unit_cost_gross_ars_snapshot": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "component_id": string,"id"?: string,"packaging_operation_id": string,"quantity_per_unit": number,"quantity_total": number,"total_cost_ars_snapshot": number,"unit_cost_gross_ars_snapshot": number
                   }
@@ -621,6 +663,7 @@ isOneToOne: false
                   Row: {
                     "base_cost_per_kg_snapshot_ars": number,"bulk_lot_id": string,"code": string,"created_at": string,"id": string,"is_last_of_lot": boolean,"kg_available_before": number,"kg_consumed": number,"observations": string | null,"operation_id": string,"product_id": string,"total_cost_snapshot_ars": number,"unit_cost_snapshot_ars": number,"units_packaged": number,"variance_kg": number,"variance_type": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "base_cost_per_kg_snapshot_ars": number,"bulk_lot_id": string,"code": string,"created_at"?: string,"id"?: string,"is_last_of_lot"?: boolean,"kg_available_before": number,"kg_consumed": number,"observations"?: string | null,"operation_id": string,"product_id": string,"total_cost_snapshot_ars": number,"unit_cost_snapshot_ars": number,"units_packaged": number,"variance_kg"?: number,"variance_type": string
                   }
@@ -658,6 +701,7 @@ isOneToOne: false
                   Row: {
                     "amount_ars": number,"code": string,"created_at": string,"description": string,"id": string,"movement_type": string,"operation_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "amount_ars": number,"code": string,"created_at"?: string,"description": string,"id"?: string,"movement_type": string,"operation_id": string
                   }
@@ -677,6 +721,7 @@ isOneToOne: false
                   Row: {
                     "amount_ars": number,"created_at": string,"customer_id": string | null,"id": string,"operation_id": string,"payment_type": string,"supplier_id": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "amount_ars": number,"created_at"?: string,"customer_id"?: string | null,"id"?: string,"operation_id": string,"payment_type": string,"supplier_id"?: string | null,"updated_at"?: string
                   }
@@ -720,6 +765,7 @@ isOneToOne: false
                   Row: {
                     "product_id": string,"sort_key": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "product_id": string,"sort_key"?: number,"updated_at"?: string
                   }
@@ -745,6 +791,7 @@ isOneToOne: true
                   Row: {
                     "active": boolean,"created_at": string,"id": string,"name": string,"system_role": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"created_at"?: string,"id"?: string,"name": string,"system_role"?: string | null,"updated_at"?: string
                   }
@@ -758,6 +805,7 @@ isOneToOne: true
                   Row: {
                     "component_id": string,"product_id": string,"quantity_per_unit": number,"sort_order": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "component_id": string,"product_id": string,"quantity_per_unit": number,"sort_order"?: number
                   }
@@ -789,6 +837,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"id": string,"price_ars": number,"price_list_id": string,"product_id": string,"valid_from": string,"valid_to": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"id"?: string,"price_ars": number,"price_list_id": string,"product_id": string,"valid_from"?: string,"valid_to"?: string | null
                   }
@@ -820,6 +869,7 @@ isOneToOne: false
                   Row: {
                     "base_product_id": string,"created_at": string,"extra_variable_pct": number,"presentation": string,"stock_item_id": string,"weight_kg": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "base_product_id": string,"created_at"?: string,"extra_variable_pct"?: number,"presentation": string,"stock_item_id": string,"weight_kg": number
                   }
@@ -857,6 +907,7 @@ isOneToOne: true
                   Row: {
                     "id": string,"line_total_gross_ars": number,"purchase_id": string,"quantity": number,"sort_order": number,"stock_item_id": string,"unit_price_gross_ars_snapshot": number,"unit_price_net_source": number,"vat_rate_pct": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "id"?: string,"line_total_gross_ars": number,"purchase_id": string,"quantity": number,"sort_order"?: number,"stock_item_id": string,"unit_price_gross_ars_snapshot": number,"unit_price_net_source": number,"vat_rate_pct"?: number
                   }
@@ -888,6 +939,7 @@ isOneToOne: false
                   Row: {
                     "code": string,"created_at": string,"currency_code_snapshot": string,"exchange_rate_used": number | null,"id": string,"observations": string | null,"operation_id": string,"payment_mode": string,"supplier_id": string,"total_gross_ars": number,"total_net_source_currency": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "code": string,"created_at"?: string,"currency_code_snapshot": string,"exchange_rate_used"?: number | null,"id"?: string,"observations"?: string | null,"operation_id": string,"payment_mode": string,"supplier_id": string,"total_gross_ars": number,"total_net_source_currency": number,"updated_at"?: string
                   }
@@ -919,6 +971,7 @@ isOneToOne: false
                   Row: {
                     "inci": string | null,"stock_item_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "inci"?: string | null,"stock_item_id": string
                   }
@@ -944,6 +997,7 @@ isOneToOne: true
                   Row: {
                     "amount_ars_snapshot": number,"id": string,"percent": number,"position": number,"remittance_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "amount_ars_snapshot": number,"id"?: string,"percent": number,"position": number,"remittance_id": string
                   }
@@ -969,6 +1023,7 @@ isOneToOne: false
                   Row: {
                     "id": string,"line_total_ars": number,"presentation_snapshot": string,"product_code_snapshot": string,"product_id": string,"product_name_snapshot": string,"quantity_sent": number,"remittance_id": string,"unit_price_ars_snapshot": number,"weight_kg_snapshot": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "id"?: string,"line_total_ars": number,"presentation_snapshot": string,"product_code_snapshot": string,"product_id": string,"product_name_snapshot": string,"quantity_sent": number,"remittance_id": string,"unit_price_ars_snapshot": number,"weight_kg_snapshot": number
                   }
@@ -1006,6 +1061,7 @@ isOneToOne: false
                   Row: {
                     "address_snapshot": string | null,"code": string,"created_at": string,"customer_id": string | null,"customer_source": string,"id": string,"locality_snapshot": string | null,"operation_id": string,"order_id": string,"package_count_snapshot": number | null,"phone_snapshot": string | null,"prior_balance_snapshot_ars": number,"province_snapshot": string | null,"recipient_name_snapshot": string | null,"status": string,"subtotal_ars": number,"total_order_ars": number,"total_to_collect_ars": number,"transport_address_snapshot": string | null,"transport_name_snapshot": string | null,"weight_kg_snapshot": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "address_snapshot"?: string | null,"code": string,"created_at"?: string,"customer_id"?: string | null,"customer_source": string,"id"?: string,"locality_snapshot"?: string | null,"operation_id": string,"order_id": string,"package_count_snapshot"?: number | null,"phone_snapshot"?: string | null,"prior_balance_snapshot_ars"?: number,"province_snapshot"?: string | null,"recipient_name_snapshot"?: string | null,"status": string,"subtotal_ars": number,"total_order_ars": number,"total_to_collect_ars": number,"transport_address_snapshot"?: string | null,"transport_name_snapshot"?: string | null,"weight_kg_snapshot": number
                   }
@@ -1043,6 +1099,7 @@ isOneToOne: true
                   Row: {
                     "adjustment_id": string,"id": string,"quantity_delta": number,"reason": string,"stock_item_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "adjustment_id": string,"id"?: string,"quantity_delta": number,"reason": string,"stock_item_id": string
                   }
@@ -1074,6 +1131,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"id": string,"operation_id": string,"reason": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"id"?: string,"operation_id": string,"reason": string
                   }
@@ -1093,6 +1151,7 @@ isOneToOne: true
                   Row: {
                     "quantity": number,"stock_item_id": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "quantity"?: number,"stock_item_id": string,"updated_at"?: string
                   }
@@ -1118,6 +1177,7 @@ isOneToOne: true
                   Row: {
                     "active": boolean,"code": string,"created_at": string,"created_date": string,"id": string,"item_type": string,"name": string,"stock_minimum": number,"unit_type": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"code": string,"created_at"?: string,"created_date"?: string,"id"?: string,"item_type": string,"name": string,"stock_minimum": number,"unit_type": string,"updated_at"?: string
                   }
@@ -1131,6 +1191,7 @@ isOneToOne: true
                   Row: {
                     "code": string,"created_at": string,"description": string,"id": string,"movement_type": string,"operation_id": string,"quantity_delta": number,"stock_item_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "code": string,"created_at"?: string,"description": string,"id"?: string,"movement_type": string,"operation_id": string,"quantity_delta": number,"stock_item_id": string
                   }
@@ -1162,6 +1223,7 @@ isOneToOne: false
                   Row: {
                     "active": boolean,"created_at": string,"id": string,"price_updated_at": string,"quoted_unit_price_net": number,"stock_item_id": string,"supplier_id": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"created_at"?: string,"id"?: string,"price_updated_at"?: string,"quoted_unit_price_net": number,"stock_item_id": string,"supplier_id": string,"updated_at"?: string
                   }
@@ -1199,6 +1261,7 @@ isOneToOne: false
                   Row: {
                     "active": boolean,"code": string,"created_at": string,"created_date": string,"currency_code": string,"id": string,"name": string,"phone": string | null,"salesperson": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active"?: boolean,"code": string,"created_at"?: string,"created_date"?: string,"currency_code": string,"id"?: string,"name": string,"phone"?: string | null,"salesperson"?: string | null,"updated_at"?: string
                   }
@@ -1212,6 +1275,7 @@ isOneToOne: false
                   Row: {
                     "amount_ars": number,"created_at": string,"description": string,"id": string,"operation_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "amount_ars": number,"created_at"?: string,"description": string,"id"?: string,"operation_id": string
                   }
@@ -1234,6 +1298,7 @@ isOneToOne: true
                   Row: {
                     "base_product_code": string | null,"base_product_id": string | null,"base_product_name": string | null,"cost_per_kg_ars": number | null,"formula_version_id": string | null,"total_bulk_cost_ars": number | null,"total_kg": number | null,"version_number": number | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1241,6 +1306,7 @@ isOneToOne: true
                   Row: {
                     "fx_rate_used": number | null,"net_price_ars": number | null,"price_updated_at": string | null,"quoted_unit_price_net": number | null,"stock_item_id": string | null,"supplier_currency": string | null,"supplier_id": string | null,"supplier_name": string | null,"unit_cost_gross_ars": number | null,"vat_rate_pct": number | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     {
       foreignKeyName: "supplier_items_stock_item_id_fkey"
@@ -1272,6 +1338,7 @@ isOneToOne: false
                   Row: {
                     "base_cost_ars": number | null,"base_product_id": string | null,"components_cost_ars": number | null,"extra_variable_cost_ars": number | null,"extra_variable_pct": number | null,"presentation": string | null,"product_code": string | null,"product_id": string | null,"product_name": string | null,"subtotal_cost_ars": number | null,"total_product_cost_ars": number | null,"weight_kg": number | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     {
       foreignKeyName: "products_base_product_id_fkey"
@@ -1303,6 +1370,7 @@ isOneToOne: true
                   Row: {
                     "billed_current_month_ars": number | null,"gain_current_month_ars": number | null,"open_orders": number | null,"sales_current_month": number | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1310,6 +1378,7 @@ isOneToOne: true
                   Row: {
                     "code": string | null,"current_stock": number | null,"is_critical": boolean | null,"item_type": string | null,"name": string | null,"ratio": number | null,"stock_item_id": string | null,"stock_minimum": number | null,"unit_type": string | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1317,6 +1386,7 @@ isOneToOne: true
                   Row: {
                     "active": boolean | null,"category": string | null,"code": string | null,"current_balance_ars": number | null,"customer_id": string | null,"financial_account_id": string | null,"name": string | null,"phone": string | null,"updated_at": string | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1324,6 +1394,7 @@ isOneToOne: true
                   Row: {
                     "business_date": string | null,"created_at": string | null,"customer_id": string | null,"customer_name": string | null,"customer_source": string | null,"gain_ars": number | null,"margin_remittance_id": string | null,"products_cost_total_ars": number | null,"recipient_name_snapshot": string | null,"remittance_id": string | null,"rtm_code": string | null,"rto_code": string | null,"total_order_ars": number | null,"transport_cost_ars": number | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     {
       foreignKeyName: "remittances_customer_id_fkey"
@@ -1343,13 +1414,17 @@ isOneToOne: false
                   Row: {
                     "active": boolean | null,"code": string | null,"currency_code": string | null,"debt_balance_ars": number | null,"financial_account_id": string | null,"name": string | null,"phone": string | null,"supplier_id": string | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
                 }
           }
           Functions: {
-            "apply_bulk_price_increase":
+            "adjust_stock_atomic":
+{ Args: { "p_business_date"?: string,"p_quantity_delta": number,"p_reason": string,"p_stock_item_id": string }; Returns: Json
+                           },
+"apply_bulk_price_increase":
 { Args: { "p_percentage": number,"p_price_list_id": string,"p_product_ids"?: (string)[] }; Returns: Json
                            },
 "apply_stock_movement":
@@ -1507,7 +1582,11 @@ export type CompositeTypes<
   : never
 
 export const Constants = {
-  "public": {
+  "graphql_public": {
+          Enums: {
+            
+          }
+        },"public": {
           Enums: {
             
           }

@@ -2,6 +2,7 @@ import { BaseSupabaseRepository } from './base.repository';
 import { DomainError } from '@/domain/errors';
 import { Decimal, toNumericString } from '@/domain/decimal';
 import type { Database } from '@/database/types';
+import type { StockItemType, UnitType } from '@/database/domain-types';
 
 export interface MasterItemRecord {
   id: string;
@@ -38,6 +39,16 @@ export interface CreateMasterItemAtomicInput {
   createdDate?: string;
 }
 
+export interface BatchItemCostRecord {
+  stockItemId: string;
+  supplierId: string;
+  supplierName: string;
+  supplierCurrency: 'ARS' | 'USD';
+  quotedUnitPriceNet: Decimal;
+  priceUpdatedAt: string;
+  unitCostGrossArs: Decimal;
+}
+
 export interface UpdateMasterItemInput {
   name?: string;
   stockMinimum?: Decimal;
@@ -45,7 +56,46 @@ export interface UpdateMasterItemInput {
   active?: boolean;
 }
 
+interface MasterItemRowLike {
+  id: string;
+  code: string;
+  item_type: StockItemType;
+  name: string;
+  unit_type: UnitType;
+  stock_minimum: number | string;
+  active: boolean;
+  created_date: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  raw_materials?: { inci?: string | null } | null;
+}
+
 export class MasterItemRepository extends BaseSupabaseRepository {
+  async getBatchItemCosts(): Promise<Map<string, BatchItemCostRecord>> {
+    const { data, error } = await this.client
+      .from('v_current_item_cost')
+      .select('stock_item_id, supplier_id, supplier_name, supplier_currency, quoted_unit_price_net, price_updated_at, unit_cost_gross_ars');
+
+    if (error) {
+      throw new DomainError(`Error consultando costos consolidados de insumos: ${error.message}`);
+    }
+
+    const map = new Map<string, BatchItemCostRecord>();
+    for (const row of (data || [])) {
+      if (row.stock_item_id && row.supplier_id) {
+        map.set(row.stock_item_id, {
+          stockItemId: row.stock_item_id,
+          supplierId: row.supplier_id,
+          supplierName: row.supplier_name || '',
+          supplierCurrency: (row.supplier_currency as 'ARS' | 'USD') || 'ARS',
+          quotedUnitPriceNet: new Decimal(String(row.quoted_unit_price_net || 0)),
+          priceUpdatedAt: row.price_updated_at || '',
+          unitCostGrossArs: new Decimal(String(row.unit_cost_gross_ars || 0)),
+        });
+      }
+    }
+    return map;
+  }
   async createAtomic(input: CreateMasterItemAtomicInput): Promise<MasterItemRecord> {
     const minStock = new Decimal(input.stockMinimum);
     const initialPrice = new Decimal(input.initialQuotedPriceNet);
@@ -68,7 +118,7 @@ export class MasterItemRepository extends BaseSupabaseRepository {
       throw new DomainError(`Error creando ítem maestro atómicamente: ${error?.message || 'Sin datos devueltos'}`);
     }
 
-    return this.mapToRecord(data as Record<string, any>, input.inci);
+    return this.mapToRecord(data as Record<string, unknown>, input.inci);
   }
   async create(input: CreateMasterItemInput): Promise<MasterItemRecord> {
     const { data: itemData, error: itemErr } = await this.client
@@ -170,7 +220,8 @@ export class MasterItemRepository extends BaseSupabaseRepository {
       .single();
 
     if (error || !data) return null;
-    const inci = (data as any).raw_materials?.inci || null;
+    const itemData = data as typeof data & { raw_materials?: { inci?: string | null } | null };
+    const inci = itemData.raw_materials?.inci || null;
     return this.mapToRecord(data, inci);
   }
 
@@ -185,7 +236,8 @@ export class MasterItemRepository extends BaseSupabaseRepository {
       .single();
 
     if (error || !data) return null;
-    const inci = (data as any).raw_materials?.inci || null;
+    const itemData = data as typeof data & { raw_materials?: { inci?: string | null } | null };
+    const inci = itemData.raw_materials?.inci || null;
     return this.mapToRecord(data, inci);
   }
 
@@ -211,7 +263,8 @@ export class MasterItemRepository extends BaseSupabaseRepository {
       throw new DomainError(`Error listando items de stock: ${error.message}`);
     }
 
-    return (data || []).map((row: any) => this.mapToRecord(row, row.raw_materials?.inci));
+    const rows = (data || []) as unknown as MasterItemRowLike[];
+    return rows.map((row) => this.mapToRecord(row, row.raw_materials?.inci));
   }
 
   async createAdjustmentOperation(businessDate?: string): Promise<string> {
@@ -231,19 +284,20 @@ export class MasterItemRepository extends BaseSupabaseRepository {
     return data.id;
   }
 
-  private mapToRecord(row: any, inci?: string | null): MasterItemRecord {
+  private mapToRecord(row: MasterItemRowLike | Record<string, unknown>, inci?: string | null): MasterItemRecord {
+    const rawMaterials = (row as MasterItemRowLike).raw_materials;
     return {
-      id: row.id,
-      code: row.code,
-      itemType: row.item_type,
-      name: row.name,
-      unitType: row.unit_type,
-      stockMinimum: new Decimal(row.stock_minimum),
-      active: row.active,
-      createdDate: row.created_date,
-      inci: inci !== undefined ? inci : (row.raw_materials?.inci || null),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      id: String(row.id),
+      code: String(row.code),
+      itemType: (row.item_type as StockItemType),
+      name: String(row.name),
+      unitType: (row.unit_type as UnitType),
+      stockMinimum: new Decimal(String(row.stock_minimum)),
+      active: Boolean(row.active),
+      createdDate: String(row.created_date),
+      inci: inci !== undefined ? inci : (rawMaterials?.inci || null),
+      createdAt: String(row.created_at || ''),
+      updatedAt: String(row.updated_at || ''),
     };
   }
 }

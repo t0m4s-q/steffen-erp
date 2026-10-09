@@ -724,6 +724,12 @@ Restricción por tipo:
 - MPR (`KG`) → admite hasta 3 decimales;
 - COM/PRO (`UNIT`) → `quantity` debe ser un número entero.
 
+Regla normativa de no negatividad:
+
+- Ningún ítem de stock (MPR, COM, PRO) puede tener saldo negativo (`quantity >= 0`).
+- Todo movimiento que resulte en un saldo menor a cero debe ser rechazado inmediatamente con rollback total de la transacción.
+- La tabla `stock_balances` implementa la restricción `CHECK (quantity >= 0)`.
+
 ---
 
 # 20. Tabla `stock_movements`

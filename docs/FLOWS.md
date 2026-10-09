@@ -555,13 +555,14 @@ Datos:
 ## 11.2 Transacción
 
 1. Validar ítem activo o históricamente válido.
-2. Bloquear balance.
-3. Crear `business_operation`.
-4. Crear `stock_adjustment`.
-5. Crear `stock_adjustment_item`.
-6. Crear MST AJUSTE.
-7. Actualizar `stock_balances`.
-8. Confirmar.
+2. Bloquear balance en PostgreSQL.
+3. Si es ajuste negativo: validar que el saldo actual + delta >= 0. Si resulta en saldo negativo, rechazar transacción por stock insuficiente.
+4. Crear `business_operation`.
+5. Crear `stock_adjustment`.
+6. Crear `stock_adjustment_item`.
+7. Crear MST AJUSTE.
+8. Actualizar `stock_balances`.
+9. Confirmar.
 
 ---
 

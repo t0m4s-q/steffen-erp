@@ -309,6 +309,11 @@ Stock mínimo:
 - obligatorio;
 - mayor que 0.
 
+Prohibición de stock negativo:
+
+- Ningún ítem (PRO, MPR, COM) puede tener saldo negativo (`stock balance >= 0`).
+- Cualquier movimiento que resulte en saldo menor a 0 es rechazado con rollback total.
+
 El orden visual de Stock usa:
 
 `stock_actual / stock_minimo ASC`

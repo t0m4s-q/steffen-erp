@@ -304,7 +304,9 @@ Implementar:
 - stock inicial genera MST;
 - COM/PRO no acepta decimales;
 - MPR acepta hasta 3 decimales;
-- stock mínimo 0 es rechazado.
+- stock mínimo 0 es rechazado;
+- prohibición de saldo negativo (stock balance >= 0 en DB y RPC);
+- ajuste negativo mayor al disponible es rechazado con rollback total.
 
 ---
 

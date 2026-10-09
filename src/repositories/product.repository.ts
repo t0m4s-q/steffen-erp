@@ -69,12 +69,19 @@ export interface UpdateProductInput {
 export interface IProductRepository {
   getProductDetails(productId: string): Promise<ProductDetailsRecord | null>;
   getProductComponents(productId: string): Promise<ProductComponentDetailRecord[]>;
+  listAllProductComponents(): Promise<ProductComponentDetailRecord[]>;
   getPriceAtSnapshot(productId: string, priceListId: string, snapshotIso: string): Promise<Decimal | null>;
   createProduct(input: CreateProductInput): Promise<ProductDetailsRecord>;
   updateProduct(productId: string, input: UpdateProductInput): Promise<ProductDetailsRecord>;
   listProducts(includeInactive?: boolean): Promise<ProductDetailsRecord[]>;
   setProductActive(productId: string, active: boolean): Promise<ProductDetailsRecord>;
   getBatchProductCosts(): Promise<Map<string, Decimal>>;
+  getBatchProductDetailedCosts(): Promise<Map<string, {
+    baseCost: Decimal;
+    componentsCost: Decimal;
+    extraVariable: Decimal;
+    totalCost: Decimal;
+  }>>;
 }
 
 export class ProductRepository extends BaseSupabaseRepository implements IProductRepository {
@@ -343,6 +350,86 @@ export class ProductRepository extends BaseSupabaseRepository implements IProduc
       const rawCost = row.total_product_cost_ars;
       if (productId && rawCost !== null && rawCost !== undefined) {
         costMap.set(productId, new Decimal(String(rawCost)));
+      }
+    }
+    return costMap;
+  }
+
+  async listAllProductComponents(): Promise<ProductComponentDetailRecord[]> {
+    const { data, error } = await this.client
+      .from('product_components')
+      .select(`
+        product_id,
+        component_id,
+        quantity_per_unit,
+        sort_order,
+        components (
+          stock_items (
+            code,
+            name
+          )
+        )
+      `)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      throw new DomainError(`Error obteniendo componentes de productos: ${error.message}`);
+    }
+
+    const rows = parseJsonArray(data);
+    return rows.map((r) => {
+      const row = parseJsonObject(r);
+      const compRecord = parseJsonObject(
+        Array.isArray(row.components) ? row.components[0] : row.components
+      );
+      const stockItem = parseJsonObject(
+        Array.isArray(compRecord.stock_items) ? compRecord.stock_items[0] : compRecord.stock_items
+      );
+
+      return {
+        id: `${String(row.product_id)}_${String(row.component_id)}`,
+        productId: String(row.product_id),
+        componentId: String(row.component_id),
+        componentCode: String(stockItem.code || ''),
+        componentName: String(stockItem.name || ''),
+        quantityPerUnit: new Decimal(String(row.quantity_per_unit)),
+        sortOrder: Number(row.sort_order),
+      };
+    });
+  }
+
+  async getBatchProductDetailedCosts(): Promise<Map<string, {
+    baseCost: Decimal;
+    componentsCost: Decimal;
+    extraVariable: Decimal;
+    totalCost: Decimal;
+  }>> {
+    const { data, error } = await this.client
+      .from('v_current_product_cost')
+      .select('product_id, base_cost_ars, components_cost_ars, extra_variable_cost_ars, total_product_cost_ars');
+
+    if (error) {
+      throw new DomainError(`Error consultando costos consolidados de productos: ${error.message}`);
+    }
+
+    const rows = parseJsonArray(data);
+    const costMap = new Map<string, {
+      baseCost: Decimal;
+      componentsCost: Decimal;
+      extraVariable: Decimal;
+      totalCost: Decimal;
+    }>();
+
+    for (const r of rows) {
+      const row = parseJsonObject(r);
+      const productId = String(row.product_id || '');
+      if (productId) {
+        costMap.set(productId, {
+          baseCost: new Decimal(String(row.base_cost_ars || 0)),
+          componentsCost: new Decimal(String(row.components_cost_ars || 0)),
+          extraVariable: new Decimal(String(row.extra_variable_cost_ars || 0)),
+          totalCost: new Decimal(String(row.total_product_cost_ars || 0)),
+        });
       }
     }
     return costMap;

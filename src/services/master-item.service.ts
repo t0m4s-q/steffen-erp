@@ -186,34 +186,30 @@ export class MasterItemDomainService {
   ): Promise<MasterItemWithCostAndBalance[]> {
     const items = await this.masterItemRepo.listAll(itemType, includeInactive);
 
-    const result = await Promise.all(
-      items.map(async (item) => {
-        const [balanceRes, costRes, latestSupplierRes] = await Promise.allSettled([
-          this.stockDomainService.getStockBalance(item.id),
-          this.costEngineService.getCurrentStockItemCost(item.id),
-          this.supplierItemRepo.getLatestSupplierItem(item.id),
-        ]);
+    const [balancesMap, costsMap, suppliers] = await Promise.all([
+      this.stockDomainService.getBatchBalances(),
+      this.masterItemRepo.getBatchItemCosts(),
+      this.supplierRepo.listAll(),
+    ]);
 
-        const balance = balanceRes.status === 'fulfilled' ? balanceRes.value : new Decimal(0);
-        const cost = costRes.status === 'fulfilled' ? costRes.value : null;
-        const latestSupplierItem =
-          latestSupplierRes.status === 'fulfilled' ? latestSupplierRes.value : null;
+    const supplierCodeMap = new Map<string, string>(suppliers.map((s) => [s.id, s.code]));
 
-        return {
-          ...item,
-          balance,
-          currentTheoreticalCostGrossArs: cost,
-          referenceSupplierId: latestSupplierItem ? latestSupplierItem.supplierId : null,
-          referenceSupplierCode: latestSupplierItem ? latestSupplierItem.supplierCode : null,
-          referenceSupplierName: latestSupplierItem ? latestSupplierItem.supplierName : null,
-          referencePriceNet: latestSupplierItem ? latestSupplierItem.quotedUnitPriceNet : null,
-          referenceCurrency: latestSupplierItem ? (latestSupplierItem.supplierCurrency as 'ARS' | 'USD') : null,
-          referencePriceUpdatedAt: latestSupplierItem ? latestSupplierItem.priceUpdatedAt : null,
-        };
-      })
-    );
+    return items.map((item) => {
+      const balance = balancesMap.get(item.id) ?? new Decimal(0);
+      const costInfo = costsMap.get(item.id);
 
-    return result;
+      return {
+        ...item,
+        balance,
+        currentTheoreticalCostGrossArs: costInfo ? costInfo.unitCostGrossArs : null,
+        referenceSupplierId: costInfo ? costInfo.supplierId : null,
+        referenceSupplierCode: costInfo ? (supplierCodeMap.get(costInfo.supplierId) ?? null) : null,
+        referenceSupplierName: costInfo ? costInfo.supplierName : null,
+        referencePriceNet: costInfo ? costInfo.quotedUnitPriceNet : null,
+        referenceCurrency: costInfo ? costInfo.supplierCurrency : null,
+        referencePriceUpdatedAt: costInfo ? costInfo.priceUpdatedAt : null,
+      };
+    });
   }
 
   private validateKgPrecision(val: Decimal, fieldName: string): void {

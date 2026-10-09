@@ -32,6 +32,7 @@ import { PatrimonyDomainService } from '@/services/patrimony.service';
  */
 let customerServiceInstance: CustomerDomainService | null = null;
 let supplierServiceInstance: SupplierDomainService | null = null;
+let stockServiceInstance: StockDomainService | null = null;
 let masterItemServiceInstance: MasterItemDomainService | null = null;
 let formulaServiceInstance: FormulaDomainService | null = null;
 let costEngineServiceInstance: CostEngineService | null = null;
@@ -55,6 +56,14 @@ export function getSupplierService(): SupplierDomainService {
     supplierServiceInstance = new SupplierDomainService(supplierRepo);
   }
   return supplierServiceInstance;
+}
+
+export function getStockService(): StockDomainService {
+  if (!stockServiceInstance) {
+    const stockRepo = new StockRepository(serverSupabase);
+    stockServiceInstance = new StockDomainService(stockRepo);
+  }
+  return stockServiceInstance;
 }
 
 export function getCostEngineService(): CostEngineService {

@@ -203,33 +203,41 @@ export class ProductDomainService implements IProductDomainService {
   }
 
   /**
-   * Lista todos los Productos Finales con sus saldos y costos teóricos actuales.
+   * Lista todos los Productos Finales con sus saldos y costos teóricos actuales en batch O(1).
    */
   async listProducts(includeInactive = true): Promise<ProductWithCostAndStockRecord[]> {
     const products = await this.productRepo.listProducts(includeInactive);
 
-    return Promise.all(
-      products.map(async (p) => {
-        const [balance, rawComponents, cost] = await Promise.all([
-          this.stockDomainService.getStockBalance(p.productId),
-          this.productRepo.getProductComponents(p.productId),
-          this.costEngineService.getCurrentProductCost(p.productId).catch(() => ({
-            baseCost: new Decimal(0),
-            componentsCost: new Decimal(0),
-            extraVariable: new Decimal(0),
-            totalCost: new Decimal(0),
-          })),
-        ]);
-        const components = await this.enrichComponentsWithCosts(rawComponents);
+    const [balancesMap, detailedCostsMap, allComponents] = await Promise.all([
+      this.stockDomainService.getBatchBalances(),
+      this.productRepo.getBatchProductDetailedCosts(),
+      this.productRepo.listAllProductComponents(),
+    ]);
 
-        return {
-          ...p,
-          balance,
-          cost,
-          components,
-        };
-      })
-    );
+    const componentsByProductId = new Map<string, ProductComponentDetailRecord[]>();
+    for (const c of allComponents) {
+      const list = componentsByProductId.get(c.productId) || [];
+      list.push(c);
+      componentsByProductId.set(c.productId, list);
+    }
+
+    return products.map((p) => {
+      const balance = balancesMap.get(p.productId) ?? new Decimal(0);
+      const cost = detailedCostsMap.get(p.productId) ?? {
+        baseCost: new Decimal(0),
+        componentsCost: new Decimal(0),
+        extraVariable: new Decimal(0),
+        totalCost: new Decimal(0),
+      };
+      const components = componentsByProductId.get(p.productId) || [];
+
+      return {
+        ...p,
+        balance,
+        cost,
+        components,
+      };
+    });
   }
 
   private async enrichComponentsWithCosts(
