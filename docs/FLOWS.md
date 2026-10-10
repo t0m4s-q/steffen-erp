@@ -389,6 +389,12 @@ Para cada MPR:
 
 `cantidad necesaria = cantidad fórmula × kg fabricados / total kg fórmula`
 
+Regla de escalado y redondeo individual (Fase 6):
+- Cada MPR se escala proporcionalmente y se redondea individualmente a 3 decimales con `ROUND_HALF_UP`.
+- No se redistribuyen diferencias de ±0,001 kg entre ingredientes.
+- `kg_fabricated` representa el rendimiento declarado del lote y `kg_available` nace igual a `kg_fabricated`.
+- La suma de consumos físicos redondeados puede diferir mínimamente del rendimiento declarado por efecto de la precisión física de 1 g.
+
 Calcular:
 
 - cantidad necesaria;

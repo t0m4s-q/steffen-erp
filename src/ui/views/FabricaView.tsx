@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Factory,
   Package,
@@ -11,6 +12,8 @@ import {
 } from 'lucide-react';
 import { type CostGainAnalysisDTO } from '@/actions/cost-gain.dto';
 import { CostGainView } from './CostGainView';
+import { RegistrarFabricacionModal, type BaseProductOption } from '@/ui/modals/RegistrarFabricacionModal';
+import type { BulkLotDTO, FactoryMovementDTO } from '@/actions/factory.dto';
 
 export interface FabricaFormulaOptionDTO {
   id: string;
@@ -34,16 +37,24 @@ interface FabricaViewProps {
   costGainAnalysis: CostGainAnalysisDTO;
   formulaOptions?: FabricaFormulaOptionDTO[];
   lowStockProducts?: FabricaLowStockProductDTO[];
+  bulkLots?: BulkLotDTO[];
+  factoryMovements?: FactoryMovementDTO[];
+  baseProductsForFabrication?: BaseProductOption[];
 }
 
 export const FabricaView: React.FC<FabricaViewProps> = ({
   costGainAnalysis,
   formulaOptions = [],
   lowStockProducts = [],
+  bulkLots = [],
+  factoryMovements = [],
+  baseProductsForFabrication = [],
 }) => {
+  const router = useRouter();
   const [selectedFormulaId, setSelectedFormulaId] = useState<string>(
     formulaOptions[0]?.id || ''
   );
+  const [isFabricacionModalOpen, setIsFabricacionModalOpen] = useState<boolean>(false);
 
   const activeFormula = formulaOptions.find((f) => f.id === selectedFormulaId) || formulaOptions[0] || null;
 
@@ -72,11 +83,26 @@ export const FabricaView: React.FC<FabricaViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E5E5]">
-                  <tr>
-                    <td colSpan={4} className="py-10 text-center text-xs text-neutral-400">
-                      Sin lotes a granel disponibles
-                    </td>
-                  </tr>
+                  {bulkLots.length > 0 ? (
+                    bulkLots.map((lot) => (
+                      <tr key={lot.id} className="hover:bg-gray-50/80 transition-colors">
+                        <td className="py-2.5 px-3 font-mono font-semibold text-black">{lot.code}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{lot.businessDate}</td>
+                        <td className="py-2.5 px-3 font-semibold text-black truncate max-w-0">
+                          {lot.baseProductName}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-black">
+                          {lot.kgAvailable} Kg
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="py-10 text-center text-xs text-neutral-400">
+                        Sin lotes a granel disponibles
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -92,9 +118,9 @@ export const FabricaView: React.FC<FabricaViewProps> = ({
             <div className="grid grid-cols-2 gap-3 mb-2">
               <button
                 type="button"
-                className="h-12 bg-[#0E50A0] opacity-80 cursor-not-allowed text-white rounded-[5px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
-                title="Módulo de Fabricación próximo en Fase 4"
-                disabled
+                onClick={() => setIsFabricacionModalOpen(true)}
+                className="h-12 bg-[#0E50A0] hover:bg-[#0c4386] cursor-pointer text-white rounded-[5px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                title="Registrar nueva fabricación de granel"
               >
                 <Factory className="w-4 h-4" />
                 <span>Fabricación</span>
@@ -298,16 +324,46 @@ export const FabricaView: React.FC<FabricaViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5E5]">
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-xs text-neutral-400">
-                    Sin movimientos de fábrica registrados
-                  </td>
-                </tr>
+                {factoryMovements.length > 0 ? (
+                  factoryMovements.map((mov) => (
+                    <tr key={mov.id} className="hover:bg-gray-50/80 transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-semibold text-black">{mov.code}</td>
+                      <td className="py-2.5 px-3 text-gray-700">{mov.businessDate}</td>
+                      <td className="py-2.5 px-3 text-gray-900 font-medium">{mov.movementType}</td>
+                      <td className="py-2.5 px-3 text-gray-700 truncate max-w-0">{mov.description}</td>
+                      <td className="py-2.5 px-3 text-right font-mono text-gray-600 text-[11px]">
+                        {mov.movementType === 'FABRICACIÓN' || mov.movementType === 'FABRICACION'
+                          ? '- MATERIA PRIMA + GRANEL'
+                          : mov.movementType === 'ENVASADO'
+                          ? '- GRANEL - COMPONENTES + PRODUCTOS'
+                          : mov.movementType === 'MERMA'
+                          ? '- GRANEL'
+                          : mov.movementType === 'SOBRANTE'
+                          ? '+ PRODUCTOS'
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-xs text-neutral-400">
+                      Sin movimientos de fábrica registrados
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {/* Modal de Registro de Fabricación */}
+      <RegistrarFabricacionModal
+        isOpen={isFabricacionModalOpen}
+        onClose={() => setIsFabricacionModalOpen(false)}
+        onSuccess={() => router.refresh()}
+        baseProducts={baseProductsForFabrication}
+      />
     </div>
   );
 };

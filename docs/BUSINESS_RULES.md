@@ -114,6 +114,14 @@ Inicialmente:
 
 `kg disponibles = kg fabricados`
 
+### 3.3.1 Regla de escalado y redondeo individual de materias primas
+
+Por decisión de negocio para la Fase 6:
+- Cada Materia Prima se escala proporcionalmente y se redondea individualmente a 3 decimales con `ROUND_HALF_UP`.
+- No se redistribuyen diferencias de ±0,001 kg entre ingredientes.
+- `kg_fabricated` representa el rendimiento declarado del lote y `kg_available` nace igual a `kg_fabricated`.
+- La suma de consumos físicos redondeados puede diferir mínimamente del rendimiento declarado por efecto de la precisión física de 1 g.
+
 ---
 
 ## 3.4 Costos históricos del GRA

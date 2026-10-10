@@ -24,6 +24,8 @@ import { CostGainDomainService } from '@/services/cost-gain.service';
 
 import { PatrimonyRepository } from '@/repositories/patrimony.repository';
 import { PatrimonyDomainService } from '@/services/patrimony.service';
+import { FactoryRepository } from '@/repositories/factory.repository';
+import { FactoryDomainService } from '@/services/factory.service';
 
 /**
  * Composition Root para instanciación controlada y unificada de servicios
@@ -164,6 +166,32 @@ export function getPatrimonyService(): PatrimonyDomainService {
     patrimonyServiceInstance = new PatrimonyDomainService(patrimonyRepo);
   }
   return patrimonyServiceInstance;
+}
+
+let factoryRepoInstance: FactoryRepository | null = null;
+let factoryServiceInstance: FactoryDomainService | null = null;
+
+export function getFactoryRepository(): FactoryRepository {
+  if (!factoryRepoInstance) {
+    factoryRepoInstance = new FactoryRepository(serverSupabase);
+  }
+  return factoryRepoInstance;
+}
+
+export function getFactoryService(): FactoryDomainService {
+  if (!factoryServiceInstance) {
+    const factoryRepo = getFactoryRepository();
+    const formulaRepo = new FormulaRepository(serverSupabase);
+    const supplierItemRepo = getSupplierItemRepository();
+    const stockRepo = new StockRepository(serverSupabase);
+    factoryServiceInstance = new FactoryDomainService(
+      factoryRepo,
+      formulaRepo,
+      supplierItemRepo,
+      stockRepo
+    );
+  }
+  return factoryServiceInstance;
 }
 
 

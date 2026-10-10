@@ -4,8 +4,13 @@ import {
   getCostGainService,
   getFormulaService,
   getProductService,
+  getFactoryService,
 } from '@/services/composition';
 import { serializeCostGainAnalysis } from '@/actions/cost-gain.dto';
+import {
+  serializeBulkLot,
+  serializeFactoryMovement,
+} from '@/actions/factory.dto';
 import {
   FabricaView,
   type FabricaFormulaOptionDTO,
@@ -36,8 +41,15 @@ export default async function FabricaPage(props: {
   const costGainService = getCostGainService();
   const formulaService = getFormulaService();
   const productService = getProductService();
+  const factoryService = getFactoryService();
 
-  const [analysisResult, baseProductRecords, productRecords] = await Promise.all([
+  const [
+    analysisResult,
+    baseProductRecords,
+    productRecords,
+    openLotsRecords,
+    recentMovementsRecords,
+  ] = await Promise.all([
     costGainService.listProductAnalysis(requestedProfileId, true).catch(async () => {
       if (requestedProfileId) {
         return costGainService.listProductAnalysis(undefined, true);
@@ -46,9 +58,13 @@ export default async function FabricaPage(props: {
     }),
     formulaService.listBaseProducts(true),
     productService.listProducts(false),
+    factoryService.listOpenBulkLots(),
+    factoryService.listRecentFactoryMovements(50),
   ]);
 
   const analysisDTO = serializeCostGainAnalysis(analysisResult);
+  const bulkLotsDTO = openLotsRecords.map(serializeBulkLot);
+  const factoryMovementsDTO = recentMovementsRecords.map(serializeFactoryMovement);
 
   // 3. Opciones de fórmulas reales cargadas en el sistema
   const formulaOptions: FabricaFormulaOptionDTO[] = baseProductRecords
@@ -63,7 +79,16 @@ export default async function FabricaPage(props: {
       })),
     }));
 
-  // 4. Alertas reales de producción bajo stock
+  // 4. Opciones de productos base aptos para fabricación
+  const baseProductsForFabrication = baseProductRecords
+    .filter((bp) => bp.active && bp.currentFormulaBreakdown)
+    .map((bp) => ({
+      id: bp.id,
+      name: bp.name,
+      code: bp.code,
+    }));
+
+  // 5. Alertas reales de producción bajo stock
   const lowStockProducts: FabricaLowStockProductDTO[] = productRecords
     .filter((p) => p.active && p.stockMinimum && p.balance.lte(p.stockMinimum))
     .map((p) => ({
@@ -79,6 +104,9 @@ export default async function FabricaPage(props: {
       costGainAnalysis={analysisDTO}
       formulaOptions={formulaOptions}
       lowStockProducts={lowStockProducts}
+      bulkLots={bulkLotsDTO}
+      factoryMovements={factoryMovementsDTO}
+      baseProductsForFabrication={baseProductsForFabrication}
     />
   );
 }
