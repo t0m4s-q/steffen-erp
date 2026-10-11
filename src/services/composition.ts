@@ -184,11 +184,15 @@ export function getFactoryService(): FactoryDomainService {
     const formulaRepo = new FormulaRepository(serverSupabase);
     const supplierItemRepo = getSupplierItemRepository();
     const stockRepo = new StockRepository(serverSupabase);
+    const productRepo = new ProductRepository(serverSupabase);
+    const costEngineService = getCostEngineService();
     factoryServiceInstance = new FactoryDomainService(
       factoryRepo,
       formulaRepo,
       supplierItemRepo,
-      stockRepo
+      stockRepo,
+      productRepo,
+      costEngineService
     );
   }
   return factoryServiceInstance;

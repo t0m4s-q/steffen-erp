@@ -97,3 +97,83 @@ export async function manufactureBulkLotAction(
     return { success: false, error: msg };
   }
 }
+
+export async function getPackagingPreviewAction(
+  bulkLotId: string,
+  productId: string,
+  unitsPackaged: number | string,
+  isLastOfLot?: boolean
+): Promise<ActionResult<import('./factory.dto').PackagingPreviewDTO>> {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user || !isUserAuthorized(user)) {
+      return { success: false, error: 'Usuario no autenticado o no autorizado.' };
+    }
+
+    if (!bulkLotId || !bulkLotId.trim()) {
+      return { success: false, error: 'Debe seleccionar un lote a granel.' };
+    }
+
+    if (!productId || !productId.trim()) {
+      return { success: false, error: 'Debe seleccionar un Producto Final.' };
+    }
+
+    const factoryService = getFactoryService();
+    const preview = await factoryService.getPackagingPreview(
+      bulkLotId,
+      productId,
+      unitsPackaged,
+      isLastOfLot
+    );
+
+    const { serializePackagingPreview } = await import('./factory.dto');
+    return {
+      success: true,
+      data: serializePackagingPreview(preview),
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error inesperado calculando requerimientos de envasado.';
+    return { success: false, error: msg };
+  }
+}
+
+export async function packageProductAction(
+  input: import('./factory.dto').PackageProductInputDTO
+): Promise<ActionResult<import('./factory.dto').PackageProductResultDTO>> {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user || !isUserAuthorized(user)) {
+      return { success: false, error: 'Usuario no autenticado o no autorizado.' };
+    }
+
+    if (!input.bulkLotId) {
+      return { success: false, error: 'El lote a granel es obligatorio.' };
+    }
+
+    if (!input.productId) {
+      return { success: false, error: 'El Producto Final es obligatorio.' };
+    }
+
+    const factoryService = getFactoryService();
+    const result = await factoryService.packageProduct({
+      bulkLotId: input.bulkLotId,
+      productId: input.productId,
+      unitsPackaged: input.unitsPackaged,
+      isLastOfLot: input.isLastOfLot,
+      businessDate: input.businessDate?.trim() || undefined,
+      observations: input.observations?.trim() || undefined,
+    });
+
+    revalidatePath('/fabrica');
+    revalidatePath('/stock');
+
+    const { serializePackageProductResult } = await import('./factory.dto');
+    return {
+      success: true,
+      data: serializePackageProductResult(result),
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error registrando envasado.';
+    return { success: false, error: msg };
+  }
+}

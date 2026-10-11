@@ -5,10 +5,15 @@ import {
   FactoryMovementRecord,
   ManufactureBulkLotResult,
   MaterialCostSnapshotInput,
+  PackageProductInput,
+  PackageProductResult,
+  ComponentCostSnapshotInput,
 } from '@/repositories/factory.repository';
 import { IFormulaRepository, FormulaRepository } from '@/repositories/formula.repository';
 import { ISupplierItemRepository, SupplierItemRepository } from '@/repositories/supplier-item.repository';
 import { IStockRepository, StockRepository } from '@/repositories/stock.repository';
+import { IProductRepository, ProductRepository } from '@/repositories/product.repository';
+import { ICostEngineService, CostEngineService } from '@/services/cost-engine.service';
 import { Decimal, VAT_MULTIPLIER_DECIMAL } from '@/domain/decimal';
 import { DomainError } from '@/domain/errors';
 
@@ -16,6 +21,15 @@ export interface ManufactureBulkLotParams {
   baseProductId: string;
   formulaVersionId: string;
   kgFabricated: Decimal | number | string;
+  businessDate?: string;
+  observations?: string;
+}
+
+export interface PackageProductParams {
+  bulkLotId: string;
+  productId: string;
+  unitsPackaged: Decimal | number | string;
+  isLastOfLot?: boolean;
   businessDate?: string;
   observations?: string;
 }
@@ -28,6 +42,18 @@ export interface MaterialRequirementPreview {
   availableKg: Decimal;
   isSufficient: boolean;
   unitCostGrossArs: Decimal;
+  totalCostArs: Decimal;
+}
+
+export interface ComponentRequirementPreview {
+  componentId: string;
+  componentCode: string;
+  componentName: string;
+  quantityPerUnit: number;
+  requiredUnits: number;
+  availableUnits: Decimal;
+  isSufficient: boolean;
+  unitCostArs: Decimal;
   totalCostArs: Decimal;
 }
 
@@ -46,6 +72,31 @@ export interface BulkManufacturingPreview {
   estimatedCostPerKgArs: Decimal;
 }
 
+export interface PackagingPreview {
+  bulkLotId: string;
+  bulkLotCode: string;
+  baseProductId: string;
+  baseProductName: string;
+  kgAvailable: Decimal;
+  productId: string;
+  productCode: string;
+  productName: string;
+  productPresentation: string;
+  weightKg: Decimal;
+  unitsPackaged: number;
+  kgConsumed: Decimal;
+  isLastOfLot: boolean;
+  varianceType: 'NONE' | 'MERMA' | 'SOBRANTE';
+  varianceKg: Decimal;
+  isBulkSufficient: boolean;
+  components: ComponentRequirementPreview[];
+  isAllComponentsSufficient: boolean;
+  canPackage: boolean;
+  bulkCostPerKgArs: Decimal;
+  estimatedUnitCostArs: Decimal;
+  estimatedTotalCostArs: Decimal;
+}
+
 export interface IFactoryDomainService {
   listOpenBulkLots(): Promise<BulkLotRecord[]>;
   listRecentFactoryMovements(limit?: number): Promise<FactoryMovementRecord[]>;
@@ -54,6 +105,13 @@ export interface IFactoryDomainService {
     kgFabricated: Decimal | number | string
   ): Promise<BulkManufacturingPreview>;
   manufactureBulkLot(params: ManufactureBulkLotParams): Promise<ManufactureBulkLotResult>;
+  getPackagingPreview(
+    bulkLotId: string,
+    productId: string,
+    unitsPackaged: Decimal | number | string,
+    isLastOfLot?: boolean
+  ): Promise<PackagingPreview>;
+  packageProduct(params: PackageProductParams): Promise<PackageProductResult>;
 }
 
 export class FactoryDomainService implements IFactoryDomainService {
@@ -61,7 +119,9 @@ export class FactoryDomainService implements IFactoryDomainService {
     private readonly factoryRepo: IFactoryRepository = new FactoryRepository(),
     private readonly formulaRepo: IFormulaRepository = new FormulaRepository(),
     private readonly supplierItemRepo: ISupplierItemRepository = new SupplierItemRepository(),
-    private readonly stockRepo: IStockRepository = new StockRepository()
+    private readonly stockRepo: IStockRepository = new StockRepository(),
+    private readonly productRepo: IProductRepository = new ProductRepository(),
+    private readonly costEngineService: ICostEngineService = new CostEngineService()
   ) {}
 
   async listOpenBulkLots(): Promise<BulkLotRecord[]> {
@@ -264,6 +324,184 @@ export class FactoryDomainService implements IFactoryDomainService {
       businessDate,
       observations,
       costSnapshots,
+    });
+  }
+
+  async getPackagingPreview(
+    bulkLotId: string,
+    productId: string,
+    unitsPackaged: Decimal | number | string,
+    isLastOfLot?: boolean
+  ): Promise<PackagingPreview> {
+    if (!bulkLotId) {
+      throw new DomainError('El bulkLotId es obligatorio.');
+    }
+    if (!productId) {
+      throw new DomainError('El productId es obligatorio.');
+    }
+
+    const unitsDec = new Decimal(String(unitsPackaged));
+    if (!unitsDec.isInteger() || unitsDec.lte(0)) {
+      throw new DomainError('La cantidad a envasar debe ser un número entero mayor a 0.');
+    }
+    const units = unitsDec.toNumber();
+
+    const bulkLot = await this.factoryRepo.getBulkLotById(bulkLotId);
+    if (!bulkLot) {
+      throw new DomainError(`Lote de granel ${bulkLotId} no encontrado.`);
+    }
+    if (bulkLot.status !== 'OPEN') {
+      throw new DomainError(`El lote ${bulkLot.code} está cerrado y no admite envasado.`);
+    }
+
+    const product = await this.productRepo.getProductDetails(productId);
+    if (!product) {
+      throw new DomainError(`Producto Final ${productId} no encontrado.`);
+    }
+    if (!product.active) {
+      throw new DomainError(`El Producto Final "${product.name}" está inactivo.`);
+    }
+
+    if (product.baseProductId !== bulkLot.baseProductId) {
+      throw new DomainError(
+        `El Producto Final "${product.name}" no corresponde al Producto Base del lote seleccionado (${bulkLot.baseProductName}).`
+      );
+    }
+
+    const kgConsumed = unitsDec.times(product.weightKg).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
+    const isLast = Boolean(isLastOfLot);
+    const isBulkSufficient = isLast || kgConsumed.lte(bulkLot.kgAvailable);
+
+    let varianceType: 'NONE' | 'MERMA' | 'SOBRANTE' = 'NONE';
+    let varianceKg = new Decimal(0);
+    if (isLast) {
+      if (kgConsumed.lt(bulkLot.kgAvailable)) {
+        varianceType = 'MERMA';
+        varianceKg = bulkLot.kgAvailable.minus(kgConsumed).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
+      } else if (kgConsumed.gt(bulkLot.kgAvailable)) {
+        varianceType = 'SOBRANTE';
+        varianceKg = kgConsumed.minus(bulkLot.kgAvailable).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
+      } else {
+        varianceType = 'NONE';
+        varianceKg = new Decimal(0);
+      }
+    }
+
+    const components = await this.productRepo.getProductComponents(productId);
+    if (!components || components.length === 0) {
+      throw new DomainError(`El Producto Final "${product.name}" no tiene componentes configurados (BOM).`);
+    }
+
+    // Consulta batch de saldos de componentes
+    const balanceMap = await this.stockRepo.getBatchBalances();
+
+    let unitCompsCostSum = new Decimal(0);
+    const componentPreviews: ComponentRequirementPreview[] = [];
+
+    for (const comp of components) {
+      const qPerUnit = comp.quantityPerUnit.toNumber();
+      const requiredUnits = units * qPerUnit;
+      const availableUnits = balanceMap.get(comp.componentId) || new Decimal(0);
+      const isSufficient = availableUnits.gte(requiredUnits);
+
+      let unitCost = new Decimal(0);
+      try {
+        unitCost = await this.costEngineService.getCurrentStockItemCost(comp.componentId);
+      } catch {
+        unitCost = new Decimal(0);
+      }
+
+      const totalCost = new Decimal(requiredUnits).times(unitCost).toDecimalPlaces(6, Decimal.ROUND_HALF_UP);
+      unitCompsCostSum = unitCompsCostSum.plus(new Decimal(qPerUnit).times(unitCost));
+
+      componentPreviews.push({
+        componentId: comp.componentId,
+        componentCode: comp.componentCode,
+        componentName: comp.componentName,
+        quantityPerUnit: qPerUnit,
+        requiredUnits,
+        availableUnits,
+        isSufficient,
+        unitCostArs: unitCost,
+        totalCostArs: totalCost,
+      });
+    }
+
+    const isAllComponentsSufficient = componentPreviews.every((c) => c.isSufficient);
+    const canPackage = isBulkSufficient && isAllComponentsSufficient;
+
+    // Costo unitario teórico congelado
+    const bulkCostPerKg = bulkLot.costPerKgSnapshotArs;
+    const unitBaseCost = product.weightKg.times(bulkCostPerKg).toDecimalPlaces(6, Decimal.ROUND_HALF_UP);
+    const unitSubtotal = unitBaseCost.plus(unitCompsCostSum);
+    const unitExtraVariable = unitSubtotal.times(product.extraVariablePct.dividedBy(100));
+    const estimatedUnitCostArs = unitSubtotal.plus(unitExtraVariable).toDecimalPlaces(6, Decimal.ROUND_HALF_UP);
+    const estimatedTotalCostArs = unitsDec.times(estimatedUnitCostArs).toDecimalPlaces(6, Decimal.ROUND_HALF_UP);
+
+    return {
+      bulkLotId,
+      bulkLotCode: bulkLot.code,
+      baseProductId: bulkLot.baseProductId,
+      baseProductName: bulkLot.baseProductName,
+      kgAvailable: bulkLot.kgAvailable,
+      productId: product.productId,
+      productCode: product.code,
+      productName: product.name,
+      productPresentation: product.presentation,
+      weightKg: product.weightKg,
+      unitsPackaged: units,
+      kgConsumed,
+      isLastOfLot: isLast,
+      varianceType,
+      varianceKg,
+      isBulkSufficient,
+      components: componentPreviews,
+      isAllComponentsSufficient,
+      canPackage,
+      bulkCostPerKgArs: bulkCostPerKg,
+      estimatedUnitCostArs,
+      estimatedTotalCostArs,
+    };
+  }
+
+  async packageProduct(params: PackageProductParams): Promise<PackageProductResult> {
+    const { bulkLotId, productId, unitsPackaged, isLastOfLot, businessDate, observations } = params;
+
+    if (!bulkLotId) {
+      throw new DomainError('El bulkLotId es obligatorio.');
+    }
+    if (!productId) {
+      throw new DomainError('El productId es obligatorio.');
+    }
+
+    const unitsDec = new Decimal(String(unitsPackaged));
+    if (!unitsDec.isInteger() || unitsDec.lte(0)) {
+      throw new DomainError('La cantidad a envasar debe ser un número entero mayor a 0.');
+    }
+    const units = unitsDec.toNumber();
+
+    const components = await this.productRepo.getProductComponents(productId);
+    if (!components || components.length === 0) {
+      throw new DomainError(`El producto seleccionado no tiene componentes configurados (BOM).`);
+    }
+
+    const componentCosts: ComponentCostSnapshotInput[] = [];
+    for (const comp of components) {
+      const unitCost = await this.costEngineService.getCurrentStockItemCost(comp.componentId);
+      componentCosts.push({
+        componentId: comp.componentId,
+        unitCostGrossArsSnapshot: unitCost.toDecimalPlaces(6, Decimal.ROUND_HALF_UP),
+      });
+    }
+
+    return await this.factoryRepo.packageProductAtomic({
+      bulkLotId,
+      productId,
+      unitsPackaged: units,
+      isLastOfLot: Boolean(isLastOfLot),
+      businessDate,
+      observations,
+      componentCosts,
     });
   }
 }

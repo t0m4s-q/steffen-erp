@@ -163,3 +163,130 @@ export function serializeManufactureResult(
     costPerKgSnapshotArs: toNumericString(result.costPerKgSnapshotArs),
   };
 }
+
+export interface ComponentRequirementPreviewDTO {
+  componentId: string;
+  componentCode: string;
+  componentName: string;
+  quantityPerUnit: number;
+  requiredUnits: number;
+  availableUnits: string;
+  isSufficient: boolean;
+  unitCostArs: string;
+  totalCostArs: string;
+}
+
+export interface PackagingPreviewDTO {
+  bulkLotId: string;
+  bulkLotCode: string;
+  baseProductId: string;
+  baseProductName: string;
+  kgAvailable: string;
+  productId: string;
+  productCode: string;
+  productName: string;
+  productPresentation: string;
+  weightKg: string;
+  unitsPackaged: number;
+  kgConsumed: string;
+  isLastOfLot: boolean;
+  varianceType: 'NONE' | 'MERMA' | 'SOBRANTE';
+  varianceKg: string;
+  isBulkSufficient: boolean;
+  components: ComponentRequirementPreviewDTO[];
+  isAllComponentsSufficient: boolean;
+  canPackage: boolean;
+  bulkCostPerKgArs: string;
+  estimatedUnitCostArs: string;
+  estimatedTotalCostArs: string;
+}
+
+export interface PackageProductInputDTO {
+  bulkLotId: string;
+  productId: string;
+  unitsPackaged: number | string;
+  isLastOfLot?: boolean;
+  businessDate?: string;
+  observations?: string;
+}
+
+export interface PackageProductResultDTO {
+  operationId: string;
+  packagingOperationId: string;
+  envCode: string;
+  mfaCode: string;
+  mfaVarianceCode?: string | null;
+  bulkLotId: string;
+  productId: string;
+  unitsPackaged: number;
+  kgConsumed: string;
+  isLastOfLot: boolean;
+  varianceType: 'NONE' | 'MERMA' | 'SOBRANTE';
+  varianceKg: string;
+  bulkLotStatus: 'OPEN' | 'CLOSED';
+  bulkLotKgAvailable: string;
+  unitCostSnapshotArs: string;
+  totalCostSnapshotArs: string;
+}
+
+export function serializePackagingPreview(
+  preview: import('@/services/factory.service').PackagingPreview
+): PackagingPreviewDTO {
+  return {
+    bulkLotId: preview.bulkLotId,
+    bulkLotCode: preview.bulkLotCode,
+    baseProductId: preview.baseProductId,
+    baseProductName: preview.baseProductName,
+    kgAvailable: toNumericString(preview.kgAvailable),
+    productId: preview.productId,
+    productCode: preview.productCode,
+    productName: preview.productName,
+    productPresentation: preview.productPresentation,
+    weightKg: toNumericString(preview.weightKg),
+    unitsPackaged: preview.unitsPackaged,
+    kgConsumed: toNumericString(preview.kgConsumed),
+    isLastOfLot: preview.isLastOfLot,
+    varianceType: preview.varianceType,
+    varianceKg: toNumericString(preview.varianceKg),
+    isBulkSufficient: preview.isBulkSufficient,
+    components: preview.components.map((c) => ({
+      componentId: c.componentId,
+      componentCode: c.componentCode,
+      componentName: c.componentName,
+      quantityPerUnit: c.quantityPerUnit,
+      requiredUnits: c.requiredUnits,
+      availableUnits: toNumericString(c.availableUnits),
+      isSufficient: c.isSufficient,
+      unitCostArs: toNumericString(c.unitCostArs),
+      totalCostArs: toNumericString(c.totalCostArs),
+    })),
+    isAllComponentsSufficient: preview.isAllComponentsSufficient,
+    canPackage: preview.canPackage,
+    bulkCostPerKgArs: toNumericString(preview.bulkCostPerKgArs),
+    estimatedUnitCostArs: toNumericString(preview.estimatedUnitCostArs),
+    estimatedTotalCostArs: toNumericString(preview.estimatedTotalCostArs),
+  };
+}
+
+export function serializePackageProductResult(
+  result: import('@/repositories/factory.repository').PackageProductResult
+): PackageProductResultDTO {
+  return {
+    operationId: result.operationId,
+    packagingOperationId: result.packagingOperationId,
+    envCode: result.envCode,
+    mfaCode: result.mfaCode,
+    mfaVarianceCode: result.mfaVarianceCode,
+    bulkLotId: result.bulkLotId,
+    productId: result.productId,
+    unitsPackaged: result.unitsPackaged,
+    kgConsumed: toNumericString(result.kgConsumed),
+    isLastOfLot: result.isLastOfLot,
+    varianceType: result.varianceType,
+    varianceKg: toNumericString(result.varianceKg),
+    bulkLotStatus: result.bulkLotStatus,
+    bulkLotKgAvailable: toNumericString(result.bulkLotKgAvailable),
+    unitCostSnapshotArs: toNumericString(result.unitCostSnapshotArs),
+    totalCostSnapshotArs: toNumericString(result.totalCostSnapshotArs),
+  };
+}

@@ -1439,6 +1439,9 @@ isOneToOne: false
 "manufacture_bulk_lot_atomic":
 { Args: { "p_base_product_id": string,"p_business_date"?: string,"p_cost_snapshots"?: Json,"p_formula_version_id": string,"p_kg_fabricated": number,"p_observations"?: string }; Returns: Json
                            },
+"package_product_atomic":
+{ Args: { "p_bulk_lot_id": string,"p_business_date"?: string,"p_component_costs"?: Json,"p_is_last_of_lot"?: boolean,"p_observations"?: string,"p_product_id": string,"p_units_packaged": number }; Returns: Json
+                           },
 "post_patrimonial_movement":
 { Args: { "p_amount_ars": number,"p_description": string,"p_entries": Json,"p_movement_type": string,"p_operation_id": string }; Returns: Json
                            },

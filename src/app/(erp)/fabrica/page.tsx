@@ -99,6 +99,18 @@ export default async function FabricaPage(props: {
       isCritical: p.balance.lte(0),
     }));
 
+  // 6. Opciones de productos compatibles para envasado
+  const productsForPackaging = productRecords
+    .filter((p) => p.active)
+    .map((p) => ({
+      productId: p.productId,
+      code: p.code,
+      name: p.name,
+      baseProductId: p.baseProductId,
+      presentation: p.presentation,
+      weightKg: toNumericString(p.weightKg),
+    }));
+
   return (
     <FabricaView
       costGainAnalysis={analysisDTO}
@@ -107,6 +119,7 @@ export default async function FabricaPage(props: {
       bulkLots={bulkLotsDTO}
       factoryMovements={factoryMovementsDTO}
       baseProductsForFabrication={baseProductsForFabrication}
+      productsForPackaging={productsForPackaging}
     />
   );
 }

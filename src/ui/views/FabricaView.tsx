@@ -13,6 +13,7 @@ import {
 import { type CostGainAnalysisDTO } from '@/actions/cost-gain.dto';
 import { CostGainView } from './CostGainView';
 import { RegistrarFabricacionModal, type BaseProductOption } from '@/ui/modals/RegistrarFabricacionModal';
+import { RegistrarEnvasadoModal, type PackagingProductOption } from '@/ui/modals/RegistrarEnvasadoModal';
 import type { BulkLotDTO, FactoryMovementDTO } from '@/actions/factory.dto';
 
 export interface FabricaFormulaOptionDTO {
@@ -40,6 +41,7 @@ interface FabricaViewProps {
   bulkLots?: BulkLotDTO[];
   factoryMovements?: FactoryMovementDTO[];
   baseProductsForFabrication?: BaseProductOption[];
+  productsForPackaging?: PackagingProductOption[];
 }
 
 export const FabricaView: React.FC<FabricaViewProps> = ({
@@ -49,12 +51,14 @@ export const FabricaView: React.FC<FabricaViewProps> = ({
   bulkLots = [],
   factoryMovements = [],
   baseProductsForFabrication = [],
+  productsForPackaging = [],
 }) => {
   const router = useRouter();
   const [selectedFormulaId, setSelectedFormulaId] = useState<string>(
     formulaOptions[0]?.id || ''
   );
   const [isFabricacionModalOpen, setIsFabricacionModalOpen] = useState<boolean>(false);
+  const [isEnvasadoModalOpen, setIsEnvasadoModalOpen] = useState<boolean>(false);
 
   const activeFormula = formulaOptions.find((f) => f.id === selectedFormulaId) || formulaOptions[0] || null;
 
@@ -127,9 +131,9 @@ export const FabricaView: React.FC<FabricaViewProps> = ({
               </button>
               <button
                 type="button"
-                className="h-12 bg-[#0E50A0] opacity-80 cursor-not-allowed text-white rounded-[5px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
-                title="Módulo de Envasado próximo en Fase 4"
-                disabled
+                onClick={() => setIsEnvasadoModalOpen(true)}
+                className="h-12 bg-[#0E50A0] hover:bg-[#0c4386] cursor-pointer text-white rounded-[5px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                title="Registrar nuevo envasado de producto final"
               >
                 <Package className="w-4 h-4" />
                 <span>Envasado</span>
@@ -363,6 +367,15 @@ export const FabricaView: React.FC<FabricaViewProps> = ({
         onClose={() => setIsFabricacionModalOpen(false)}
         onSuccess={() => router.refresh()}
         baseProducts={baseProductsForFabrication}
+      />
+
+      {/* Modal de Registro de Envasado */}
+      <RegistrarEnvasadoModal
+        isOpen={isEnvasadoModalOpen}
+        onClose={() => setIsEnvasadoModalOpen(false)}
+        onSuccess={() => router.refresh()}
+        bulkLots={bulkLots}
+        products={productsForPackaging}
       />
     </div>
   );
